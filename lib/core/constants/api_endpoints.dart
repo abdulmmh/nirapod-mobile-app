@@ -26,6 +26,7 @@ class ApiEndpoints {
   // Businesses
   static const String businessList = '/businesses';
   static String businessDetails(int id) => '/businesses/$id';
+  static String businessByTaxpayer(int taxpayerId) => '/businesses/by-taxpayer/$taxpayerId/vat-status';
 
   // TIN Management
   static const String tins = '/tins';

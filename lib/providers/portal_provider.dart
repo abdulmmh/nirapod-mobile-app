@@ -56,7 +56,7 @@ class PortalProvider extends ChangeNotifier {
 
       // 3. Fetch Businesses
       try {
-        final r = await apiClient.get(ApiEndpoints.businessList);
+        final r = await apiClient.get(ApiEndpoints.businessByTaxpayer(taxpayerId));
         if (r.data != null) {
           _businesses = (r.data as List).map((x) => Business.fromJson(x)).toList();
         }
