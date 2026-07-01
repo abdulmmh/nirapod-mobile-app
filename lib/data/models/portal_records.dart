@@ -108,6 +108,20 @@ class Business {
   final String tradeLicenseNo;
   final String vatStatus;
   final String? address;
+  final String? ownerName;
+  final String? tinNumber;
+  final String? businessType;
+  final String? businessCategory;
+  final String? email;
+  final String? phone;
+  final String? division;
+  final String? district;
+  final String? incorporationDate;
+  final String? registrationDate;
+  final String? expiryDate;
+  final double? annualTurnover;
+  final int? numberOfEmployees;
+  final String? remarks;
 
   Business({
     required this.id,
@@ -115,25 +129,81 @@ class Business {
     required this.tradeLicenseNo,
     required this.vatStatus,
     this.address,
+    this.ownerName,
+    this.tinNumber,
+    this.businessType,
+    this.businessCategory,
+    this.email,
+    this.phone,
+    this.division,
+    this.district,
+    this.incorporationDate,
+    this.registrationDate,
+    this.expiryDate,
+    this.annualTurnover,
+    this.numberOfEmployees,
+    this.remarks,
   });
 
   factory Business.fromJson(Map<String, dynamic> json) {
     return Business(
       id: json['id'] ?? 0,
-      name: json['name'] ?? json['companyName'] ?? '',
+      name: json['businessName'] ?? json['name'] ?? json['companyName'] ?? '',
       tradeLicenseNo: json['tradeLicenseNo'] ?? json['rjscNo'] ?? '',
-      vatStatus: json['vatStatus'] ?? 'Inactive',
+      vatStatus: json['vatStatus'] ?? json['status'] ?? 'Inactive',
       address: json['address'],
+      ownerName: json['ownerName'],
+      tinNumber: json['tinNumber'],
+      businessType: json['businessType'] is Map 
+          ? json['businessType']['typeName'] 
+          : json['businessType']?.toString(),
+      businessCategory: json['businessCategory'] is Map 
+          ? json['businessCategory']['categoryName'] 
+          : json['businessCategory']?.toString(),
+      email: json['email'],
+      phone: json['phone'],
+      division: json['division'] is Map 
+          ? json['division']['name'] 
+          : json['division']?.toString(),
+      district: json['district'] is Map 
+          ? json['district']['name'] 
+          : json['district']?.toString(),
+      incorporationDate: json['incorporationDate'],
+      registrationDate: json['registrationDate'],
+      expiryDate: json['expiryDate'],
+      annualTurnover: json['annualTurnover'] != null 
+          ? double.tryParse(json['annualTurnover'].toString()) 
+          : null,
+      numberOfEmployees: json['numberOfEmployees'] != null 
+          ? int.tryParse(json['numberOfEmployees'].toString()) 
+          : null,
+      remarks: json['remarks'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'businessName': name,
       'name': name,
       'tradeLicenseNo': tradeLicenseNo,
       'vatStatus': vatStatus,
+      'status': vatStatus,
       'address': address,
+      'ownerName': ownerName,
+      'tinNumber': tinNumber,
+      'businessType': businessType,
+      'businessCategory': businessCategory,
+      'email': email,
+      'phone': phone,
+      'division': division,
+      'district': district,
+      'incorporationDate': incorporationDate,
+      'registrationDate': registrationDate,
+      'expiryDate': expiryDate,
+      'annualTurnover': annualTurnover,
+      'numberOfEmployees': numberOfEmployees,
+      'remarks': remarks,
     };
   }
 }

@@ -148,6 +148,49 @@ class PortalProvider extends ChangeNotifier {
     return true;
   }
 
+  // Create Business
+  Future<bool> createBusiness(Business business) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final response = await apiClient.post(ApiEndpoints.businessList, data: business.toJson());
+      if (response.data != null) {
+        _businesses.insert(0, Business.fromJson(response.data));
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+    } catch (_) {
+      final mockNew = Business(
+        id: _businesses.length + 301,
+        name: business.name,
+        tradeLicenseNo: business.tradeLicenseNo,
+        vatStatus: 'Active',
+        address: business.address,
+        ownerName: business.ownerName ?? 'Abdul Karim',
+        tinNumber: business.tinNumber ?? '102345678912',
+        businessType: business.businessType ?? 'Software Development',
+        businessCategory: business.businessCategory ?? 'IT & ITES',
+        email: business.email ?? 'tech@karim.com',
+        phone: business.phone ?? '01712345678',
+        division: business.division ?? 'Dhaka',
+        district: business.district ?? 'Dhaka',
+        incorporationDate: business.incorporationDate ?? '2026-01-10',
+        registrationDate: business.registrationDate ?? '2026-03-01',
+        expiryDate: business.expiryDate ?? '2027-03-01',
+        annualTurnover: business.annualTurnover ?? 1500000.0,
+        numberOfEmployees: business.numberOfEmployees ?? 10,
+        remarks: business.remarks,
+      );
+      _businesses.insert(0, mockNew);
+    }
+
+    _isLoading = false;
+    notifyListeners();
+    return true;
+  }
+
   // Add AIT record
   Future<bool> createAit(AitRecord ait) async {
     _isLoading = true;
@@ -345,10 +388,24 @@ class PortalProvider extends ChangeNotifier {
     return [
       Business(
         id: 301,
-        name: 'Karim Software & Tech',
-        tradeLicenseNo: 'TRAD/DNCC/02345/2022',
+        name: 'Garments Apparel',
+        tradeLicenseNo: 'TL-23456-2026',
         vatStatus: 'Active',
-        address: 'H-23, Road 4, Dhanmondi, Dhaka',
+        address: 'Puran Dhaka, Lalbagh, Dhaka',
+        ownerName: 'Tasrif Zaman',
+        tinNumber: 'TIN-000000005',
+        businessType: 'Textile Manufacturing',
+        businessCategory: 'Garments & Textile',
+        email: 'abdul2mannan9@gmail.com',
+        phone: '01820318364',
+        division: 'Dhaka',
+        district: 'Dhaka',
+        incorporationDate: '2026-02-25',
+        registrationDate: '2026-05-12',
+        expiryDate: '2026-05-30',
+        annualTurnover: 3009300000.0,
+        numberOfEmployees: 200,
+        remarks: 'Mock business imported from web version.',
       ),
       Business(
         id: 302,
@@ -356,6 +413,20 @@ class PortalProvider extends ChangeNotifier {
         tradeLicenseNo: 'TRAD/DNCC/12304/2024',
         vatStatus: 'Pending',
         address: 'H-10, Block C, Uttara, Dhaka',
+        ownerName: 'Abdul Karim',
+        tinNumber: '102345678912',
+        businessType: 'Agribusiness',
+        businessCategory: 'Agriculture',
+        email: 'agro@karim.com',
+        phone: '01812345678',
+        division: 'Dhaka',
+        district: 'Dhaka',
+        incorporationDate: '2024-05-15',
+        registrationDate: '2024-06-01',
+        expiryDate: '2025-06-01',
+        annualTurnover: 85000000.0,
+        numberOfEmployees: 45,
+        remarks: 'Secondary business structure.',
       ),
     ];
   }
