@@ -33,11 +33,12 @@ class ProfileScreen extends StatelessWidget {
     final hasTin = taxpayer.tin != null && taxpayer.tin!.isNotEmpty;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         title: const Text('TIN & Profile Details'),
         elevation: 0,
         backgroundColor: Colors.transparent,
-        foregroundColor: isDark ? Colors.white : Colors.black,
+        foregroundColor: Colors.black,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -57,14 +58,14 @@ class ProfileScreen extends StatelessWidget {
                         'TIN Details',
                         style: theme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.teal.shade900,
+                          color: Colors.teal.shade900,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Full TIN record information.',
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: isDark ? Colors.white70 : Colors.grey.shade600,
+                          color: Colors.grey.shade600,
                         ),
                       ),
                     ],
@@ -322,9 +323,9 @@ class ProfileScreen extends StatelessWidget {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? AppColors.borderDark : AppColors.border),
+        border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.02),
@@ -339,9 +340,9 @@ class ProfileScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.02) : Colors.grey.shade50,
+              color: Colors.grey.shade50,
               borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12)),
-              border: Border(bottom: BorderSide(color: isDark ? AppColors.borderDark : AppColors.border)),
+              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
             ),
             child: Row(
               children: [
@@ -385,7 +386,7 @@ class ProfileScreen extends StatelessWidget {
             flex: 2,
             child: Text(
               label,
-              style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
             ),
           ),
           Expanded(

@@ -72,11 +72,12 @@ class _BusinessScreenState extends State<BusinessScreen> {
     final categories = businesses.map((b) => b.businessCategory).whereType<String>().toSet().toList();
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         title: const Text('Business Registration'),
         elevation: 0,
         backgroundColor: Colors.transparent,
-        foregroundColor: isDark ? Colors.white : Colors.black,
+        foregroundColor: Colors.black,
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -93,28 +94,28 @@ class _BusinessScreenState extends State<BusinessScreen> {
                 'Business Registration',
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.teal.shade900,
+                  color: Colors.teal.shade900,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 'Manage all registered businesses and trade licenses.',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: isDark ? Colors.white70 : Colors.grey.shade600,
+                  color: Colors.grey.shade600,
                 ),
               ),
               const SizedBox(height: 20),
 
-              // KPI Cards Grid (Matching Screenshot layout)
+              // KPI Cards Grid (Responsive Layout)
               GridView.count(
-                crossAxisCount: 2,
+                crossAxisCount: MediaQuery.of(context).size.width < 600 ? 2 : 4,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
-                childAspectRatio: 1.6,
+                childAspectRatio: MediaQuery.of(context).size.width < 380 ? 1.3 : 1.6,
                 children: [
-                  _buildKpiCard('Active', '$activeCount', Icons.check_circle_fill, AppColors.success, isDark),
+                  _buildKpiCard('Active', '$activeCount', Icons.check_circle, AppColors.success, isDark),
                   _buildKpiCard('Pending', '$pendingCount', Icons.hourglass_empty_rounded, AppColors.warning, isDark),
                   _buildKpiCard('Suspended', '$suspendedCount', Icons.remove_circle_outline, AppColors.error, isDark),
                   _buildKpiCard('Expiring Soon', '$expiringCount', Icons.warning_amber_rounded, Colors.orange, isDark),
@@ -128,9 +129,9 @@ class _BusinessScreenState extends State<BusinessScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.surfaceDark : Colors.grey.shade50,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: isDark ? AppColors.borderDark : Colors.grey.shade200),
+                  border: Border.all(color: Colors.grey.shade200),
                 ),
                 child: Column(
                   children: [
@@ -140,10 +141,14 @@ class _BusinessScreenState extends State<BusinessScreen> {
                         prefixIcon: const Icon(Icons.search, size: 20),
                         hintText: 'Search by name, license, owner, TIN...',
                         filled: true,
-                        fillColor: isDark ? AppColors.backgroundDark : Colors.white,
+                        fillColor: const Color(0xFFF5F5F5),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: isDark ? AppColors.borderDark : Colors.grey.shade300),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
                         ),
                         contentPadding: const EdgeInsets.symmetric(vertical: 8),
                       ),
@@ -185,9 +190,11 @@ class _BusinessScreenState extends State<BusinessScreen> {
 
               // Business Cards List
               filteredBusinesses.isEmpty
-                  ? const Center(
+                  ? const Padding(
                       padding: EdgeInsets.symmetric(vertical: 40),
-                      child: Text('No business structures registered matching filters.'),
+                      child: Center(
+                        child: Text('No business structures registered matching filters.'),
+                      ),
                     )
                   : ListView.builder(
                       shrinkWrap: true,
@@ -216,9 +223,9 @@ class _BusinessScreenState extends State<BusinessScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : Colors.white,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? AppColors.borderDark : Colors.grey.shade200),
+        border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
         ],
@@ -254,9 +261,9 @@ class _BusinessScreenState extends State<BusinessScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : Colors.white,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? AppColors.borderDark : Colors.grey.shade200),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Row(
         children: [
@@ -274,7 +281,7 @@ class _BusinessScreenState extends State<BusinessScreen> {
             children: [
               Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               const SizedBox(height: 2),
-              Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primary.shade900)),
+              Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primary)),
             ],
           ),
         ],
@@ -292,9 +299,9 @@ class _BusinessScreenState extends State<BusinessScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.backgroundDark : Colors.white,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: isDark ? AppColors.borderDark : Colors.grey.shade300),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
@@ -307,7 +314,7 @@ class _BusinessScreenState extends State<BusinessScreen> {
               value: null,
               child: Text(hint, style: const TextStyle(color: Colors.grey, fontSize: 13)),
             ),
-            ...items.map((i) => DropdownMenuItem<String>(value: i, child: Text(i, style: TextStyle(color: isDark ? Colors.white : Colors.black87)))),
+            ...items.map((i) => DropdownMenuItem<String>(value: i, child: Text(i, style: const TextStyle(color: Colors.black87)))),
           ],
           onChanged: onChanged,
         ),
@@ -326,9 +333,9 @@ class _BusinessScreenState extends State<BusinessScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? AppColors.borderDark : AppColors.border),
+        border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),

@@ -48,7 +48,7 @@ class Taxpayer {
       id: json['id'] ?? 0,
       fullName: json['fullName'],
       companyName: json['companyName'],
-      tin: json['tin'],
+      tin: json['tin'] ?? json['tinNumber'],
       nid: json['nid'],
       dateOfBirth: json['dateOfBirth'],
       gender: json['gender'],

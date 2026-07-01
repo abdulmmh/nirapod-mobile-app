@@ -151,11 +151,12 @@ class _IssueTinScreenState extends State<IssueTinScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         title: const Text('Issue TIN'),
         elevation: 0,
         backgroundColor: Colors.transparent,
-        foregroundColor: isDark ? Colors.white : Colors.black,
+        foregroundColor: Colors.black,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -169,14 +170,14 @@ class _IssueTinScreenState extends State<IssueTinScreen> {
                 'Issue TIN',
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.teal.shade900,
+                  color: Colors.teal.shade900,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 'Issue a new Taxpayer Identification Number.',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: isDark ? Colors.white70 : Colors.grey.shade600,
+                  color: Colors.grey.shade600,
                 ),
               ),
               const SizedBox(height: 20),
@@ -188,8 +189,9 @@ class _IssueTinScreenState extends State<IssueTinScreen> {
                 icon: Icons.search,
                 isDark: isDark,
                 children: [
-                  Row(
-                    children: [
+                  _buildResponsiveRow(
+                    context,
+                    [
                       Expanded(
                         child: TextField(
                           controller: _searchController,
@@ -197,13 +199,19 @@ class _IssueTinScreenState extends State<IssueTinScreen> {
                             hintText: 'Enter NID number or taxpayer name',
                             hintStyle: const TextStyle(fontSize: 13),
                             filled: true,
-                            fillColor: isDark ? AppColors.backgroundDark : Colors.white,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
@@ -215,6 +223,7 @@ class _IssueTinScreenState extends State<IssueTinScreen> {
                         child: const Text('Search', style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ],
+                    spacing: 8,
                   ),
                   if (_isAutoFilled) ...[
                     const SizedBox(height: 12),
@@ -281,8 +290,9 @@ class _IssueTinScreenState extends State<IssueTinScreen> {
                 icon: Icons.map_outlined,
                 isDark: isDark,
                 children: [
-                  Row(
-                    children: [
+                  _buildResponsiveRow(
+                    context,
+                    [
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -292,7 +302,6 @@ class _IssueTinScreenState extends State<IssueTinScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -410,12 +419,16 @@ class _IssueTinScreenState extends State<IssueTinScreen> {
       hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
       filled: true,
       fillColor: isLocked
-          ? (isDark ? Colors.grey.shade900 : Colors.grey.shade100)
-          : (isDark ? AppColors.backgroundDark : Colors.white),
+          ? Colors.grey.shade100
+          : Colors.white,
       prefixIcon: isLocked ? const Icon(Icons.lock_outline, size: 18, color: Colors.grey) : null,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: isDark ? AppColors.borderDark : Colors.grey.shade300),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: Colors.grey.shade300),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
     );
@@ -430,17 +443,17 @@ class _IssueTinScreenState extends State<IssueTinScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.backgroundDark : Colors.white,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: isDark ? AppColors.borderDark : Colors.grey.shade300),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: selected,
           hint: const Text('Select Option', style: TextStyle(fontSize: 13, color: Colors.grey)),
           isExpanded: true,
-          style: TextStyle(fontSize: 13, color: isDark ? Colors.white : Colors.black87),
-          items: items.map((i) => DropdownMenuItem<String>(value: i, child: Text(i))).toList(),
+          style: const TextStyle(fontSize: 13, color: Colors.black87),
+          items: items.map((i) => DropdownMenuItem<String>(value: i, child: Text(i, style: const TextStyle(color: Colors.black87)))).toList(),
           onChanged: onChanged,
         ),
       ),
@@ -453,22 +466,56 @@ class _IssueTinScreenState extends State<IssueTinScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.backgroundDark : Colors.white,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: isDark ? AppColors.borderDark : Colors.grey.shade300),
+          border: Border.all(color: Colors.grey.shade300),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               dateValue ?? 'mm/dd/yyyy',
-              style: TextStyle(fontSize: 13, color: dateValue == null ? Colors.grey : (isDark ? Colors.white : Colors.black87)),
+              style: TextStyle(fontSize: 13, color: dateValue == null ? Colors.grey : Colors.black87),
             ),
             const Icon(Icons.calendar_today_outlined, size: 16, color: Colors.grey),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildResponsiveRow(BuildContext context, List<Widget> children, {double spacing = 10}) {
+    final width = MediaQuery.of(context).size.width;
+    final cleanChildren = children.where((c) => c is! SizedBox).toList();
+    if (width < 600) {
+      final List<Widget> columnChildren = [];
+      for (int i = 0; i < cleanChildren.length; i++) {
+        var child = cleanChildren[i];
+        if (child is Expanded) {
+          child = child.child;
+        }
+        columnChildren.add(child);
+        if (i < cleanChildren.length - 1) {
+          columnChildren.add(SizedBox(height: spacing));
+        }
+      }
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: columnChildren,
+      );
+    } else {
+      final List<Widget> rowChildren = [];
+      for (int i = 0; i < cleanChildren.length; i++) {
+        rowChildren.add(cleanChildren[i]);
+        if (i < cleanChildren.length - 1) {
+          rowChildren.add(SizedBox(width: spacing));
+        }
+      }
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: rowChildren,
+      );
+    }
   }
 
   Widget _buildFormSection({
@@ -481,9 +528,9 @@ class _IssueTinScreenState extends State<IssueTinScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? AppColors.borderDark : AppColors.border),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

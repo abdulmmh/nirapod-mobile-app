@@ -43,31 +43,31 @@ class TaxpayerProvider extends ChangeNotifier {
 
     if (category == 'individual') {
       fields = [
-        tp.fullName != null && tp.fullName!.isNotEmpty,
-        tp.nid != null && tp.nid!.isNotEmpty,
-        tp.dateOfBirth != null && tp.dateOfBirth!.isNotEmpty,
-        tp.gender != null && tp.gender!.isNotEmpty,
-        tp.phone != null && tp.phone!.isNotEmpty,
-        tp.email != null && tp.email!.isNotEmpty,
-        tp.profession != null && tp.profession!.isNotEmpty,
-        tp.fathersName != null && tp.fathersName!.isNotEmpty,
-        tp.mothersName != null && tp.mothersName!.isNotEmpty,
-        tp.presentAddress?.district != null && tp.presentAddress!.district!.isNotEmpty,
-        tp.presentAddress?.division != null && tp.presentAddress!.division!.isNotEmpty,
-        tp.photoPath != null && tp.photoPath!.isNotEmpty,
+        tp.fullName?.isNotEmpty ?? false,
+        tp.nid?.isNotEmpty ?? false,
+        tp.dateOfBirth?.isNotEmpty ?? false,
+        tp.gender?.isNotEmpty ?? false,
+        tp.phone?.isNotEmpty ?? false,
+        tp.email?.isNotEmpty ?? false,
+        tp.profession?.isNotEmpty ?? false,
+        tp.fathersName?.isNotEmpty ?? false,
+        tp.mothersName?.isNotEmpty ?? false,
+        tp.presentAddress?.district?.isNotEmpty ?? false,
+        tp.presentAddress?.division?.isNotEmpty ?? false,
+        tp.photoPath?.isNotEmpty ?? false,
       ];
     } else {
       fields = [
-        tp.companyName != null && tp.companyName!.isNotEmpty,
-        tp.rjscNo != null && tp.rjscNo!.isNotEmpty,
-        tp.natureOfBusiness != null && tp.natureOfBusiness!.isNotEmpty,
-        tp.authorizedPersonName != null && tp.authorizedPersonName!.isNotEmpty,
-        tp.authorizedPersonNid != null && tp.authorizedPersonNid!.isNotEmpty,
-        tp.phone != null && tp.phone!.isNotEmpty,
-        tp.email != null && tp.email!.isNotEmpty,
-        tp.presentAddress?.district != null && tp.presentAddress!.district!.isNotEmpty,
-        tp.presentAddress?.division != null && tp.presentAddress!.division!.isNotEmpty,
-        tp.photoPath != null && tp.photoPath!.isNotEmpty,
+        tp.companyName?.isNotEmpty ?? false,
+        tp.rjscNo?.isNotEmpty ?? false,
+        tp.natureOfBusiness?.isNotEmpty ?? false,
+        tp.authorizedPersonName?.isNotEmpty ?? false,
+        tp.authorizedPersonNid?.isNotEmpty ?? false,
+        tp.phone?.isNotEmpty ?? false,
+        tp.email?.isNotEmpty ?? false,
+        tp.presentAddress?.district?.isNotEmpty ?? false,
+        tp.presentAddress?.division?.isNotEmpty ?? false,
+        tp.photoPath?.isNotEmpty ?? false,
       ];
     }
 
@@ -83,29 +83,29 @@ class TaxpayerProvider extends ChangeNotifier {
     final missing = <String>[];
 
     if (category == 'individual') {
-      if (tp.fullName == null || tp.fullName!.isEmpty) missing.add('Full Name');
-      if (tp.nid == null || tp.nid!.isEmpty) missing.add('NID Number');
-      if (tp.dateOfBirth == null || tp.dateOfBirth!.isEmpty) missing.add('Date of Birth');
-      if (tp.gender == null || tp.gender!.isEmpty) missing.add('Gender');
-      if (tp.fathersName == null || tp.fathersName!.isEmpty) missing.add("Father's Name");
-      if (tp.mothersName == null || tp.mothersName!.isEmpty) missing.add("Mother's Name");
-      if (tp.phone == null || tp.phone!.isEmpty) missing.add('Phone');
-      if (tp.email == null || tp.email!.isEmpty) missing.add('Email');
-      if (tp.profession == null || tp.profession!.isEmpty) missing.add('Profession');
-      if (tp.presentAddress?.district == null || tp.presentAddress!.district!.isEmpty) missing.add('District');
-      if (tp.presentAddress?.division == null || tp.presentAddress!.division!.isEmpty) missing.add('Division');
-      if (tp.photoPath == null || tp.photoPath!.isEmpty) missing.add('Profile Photo');
+      if (tp.fullName?.isEmpty ?? true) missing.add('Full Name');
+      if (tp.nid?.isEmpty ?? true) missing.add('NID Number');
+      if (tp.dateOfBirth?.isEmpty ?? true) missing.add('Date of Birth');
+      if (tp.gender?.isEmpty ?? true) missing.add('Gender');
+      if (tp.fathersName?.isEmpty ?? true) missing.add("Father's Name");
+      if (tp.mothersName?.isEmpty ?? true) missing.add("Mother's Name");
+      if (tp.phone?.isEmpty ?? true) missing.add('Phone');
+      if (tp.email?.isEmpty ?? true) missing.add('Email');
+      if (tp.profession?.isEmpty ?? true) missing.add('Profession');
+      if (tp.presentAddress?.district?.isEmpty ?? true) missing.add('District');
+      if (tp.presentAddress?.division?.isEmpty ?? true) missing.add('Division');
+      if (tp.photoPath?.isEmpty ?? true) missing.add('Profile Photo');
     } else {
-      if (tp.companyName == null || tp.companyName!.isEmpty) missing.add('Company Name');
-      if (tp.rjscNo == null || tp.rjscNo!.isEmpty) missing.add('RJSC Number');
-      if (tp.natureOfBusiness == null || tp.natureOfBusiness!.isEmpty) missing.add('Nature of Business');
-      if (tp.authorizedPersonName == null || tp.authorizedPersonName!.isEmpty) missing.add('Authorized Person');
-      if (tp.authorizedPersonNid == null || tp.authorizedPersonNid!.isEmpty) missing.add('Authorized Person NID');
-      if (tp.phone == null || tp.phone!.isEmpty) missing.add('Phone');
-      if (tp.email == null || tp.email!.isEmpty) missing.add('Email');
-      if (tp.presentAddress?.district == null || tp.presentAddress!.district!.isEmpty) missing.add('District');
-      if (tp.presentAddress?.division == null || tp.presentAddress!.division!.isEmpty) missing.add('Division');
-      if (tp.photoPath == null || tp.photoPath!.isEmpty) missing.add('Profile Photo');
+      if (tp.companyName?.isEmpty ?? true) missing.add('Company Name');
+      if (tp.rjscNo?.isEmpty ?? true) missing.add('RJSC Number');
+      if (tp.natureOfBusiness?.isEmpty ?? true) missing.add('Nature of Business');
+      if (tp.authorizedPersonName?.isEmpty ?? true) missing.add('Authorized Person');
+      if (tp.authorizedPersonNid?.isEmpty ?? true) missing.add('Authorized Person NID');
+      if (tp.phone?.isEmpty ?? true) missing.add('Phone');
+      if (tp.email?.isEmpty ?? true) missing.add('Email');
+      if (tp.presentAddress?.district?.isEmpty ?? true) missing.add('District');
+      if (tp.presentAddress?.division?.isEmpty ?? true) missing.add('Division');
+      if (tp.photoPath?.isEmpty ?? true) missing.add('Profile Photo');
     }
     return missing;
   }
