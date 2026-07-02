@@ -40,250 +40,255 @@ class ProfileScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.black,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Screen Header Title & Subtitle
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1100),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'TIN Details',
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.teal.shade900,
-                        ),
+                // Screen Header Title & Subtitle
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'TIN Details',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.teal.shade900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Full TIN record information.',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Full TIN record information.',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey.shade600,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                if (!hasTin) ...[
+                  // Fallback block if taxpayer does not have a TIN
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.surfaceDark : AppColors.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: isDark ? AppColors.borderDark : AppColors.border),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(Icons.credit_card_off_outlined, size: 72, color: Colors.grey.shade400),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No TIN Registered',
+                          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'You do not have a Taxpayer Identification Number registered yet. Click below to issue a new TIN instantly.',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.pushNamed(context, '/tin-create');
+                          },
+                          icon: const Icon(Icons.add_card_outlined),
+                          label: const Text('Issue TIN Now', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  // Action Buttons Row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: AppColors.success, width: 1.5),
+                            foregroundColor: AppColors.success,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          onPressed: () => _downloadCertificate(context, taxpayer.tin),
+                          icon: const Icon(Icons.picture_as_pdf_outlined),
+                          label: const Text('Download Certificate', style: TextStyle(fontWeight: FontWeight.bold)),
                         ),
                       ),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 20),
+
+                  // Redesigned Top Gradient Badge Card
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [AppColors.primary, AppColors.primaryLight],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.3),
+                          blurRadius: 16,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 56,
+                              height: 56,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.person, color: Colors.white, size: 32),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    taxpayer.tin ?? '',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontFamily: 'monospace',
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    taxpayer.fullName ?? taxpayer.companyName ?? 'N/A',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        // Badges Row
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _buildCardPill(taxpayer.taxpayerType?.category ?? 'Individual', Colors.white.withOpacity(0.2)),
+                            _buildCardPill('Dhaka Tax Zone', Colors.white.withOpacity(0.15)),
+                            _buildCardPill('Dhaka Circle-1', Colors.white.withOpacity(0.1)),
+                            _buildCardPill('Active', Colors.amber.shade400, textColor: Colors.black87),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        const Divider(color: Colors.white24, height: 1),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildStat('Issued Date', 'May 7, 2026'),
+                            _buildStat('Last Updated', 'May 11, 2026'),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // 1. Taxpayer Information card
+                  _buildSectionCard(
+                    title: 'Taxpayer Information',
+                    icon: Icons.business_outlined,
+                    isDark: isDark,
+                    theme: theme,
+                    rows: [
+                      _buildDetailRow('TIN Number', taxpayer.tin ?? 'N/A', hasBadge: true, badgeColor: AppColors.primary.withOpacity(0.1), badgeTextColor: AppColors.primary),
+                      _buildDetailRow('Full Name', taxpayer.fullName ?? taxpayer.companyName ?? 'N/A', isBoldValue: true),
+                      _buildDetailRow('Category', taxpayer.taxpayerType?.category ?? 'Individual'),
+                      _buildDetailRow('National ID', taxpayer.nid ?? 'N/A', hasBadge: true, badgeColor: Colors.blue.shade50, badgeTextColor: Colors.blue.shade800),
+                      _buildDetailRow('Date of Birth', taxpayer.dateOfBirth ?? 'N/A'),
+                      _buildDetailRow('Gender', taxpayer.gender ?? 'N/A'),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 2. Tax Authority details card
+                  _buildSectionCard(
+                    title: 'Tax Authority',
+                    icon: Icons.shield_outlined,
+                    isDark: isDark,
+                    theme: theme,
+                    rows: [
+                      _buildDetailRow('Tax Zone', 'Dhaka Tax Zone', hasBadge: true, badgeColor: Colors.cyan.shade50, badgeTextColor: Colors.cyan.shade800),
+                      _buildDetailRow('Tax Circle', 'Dhaka Circle-1', hasBadge: true, badgeColor: Colors.grey.shade100, badgeTextColor: Colors.grey.shade700),
+                      _buildDetailRow('Status', taxpayer.approvalStatus ?? 'Active', hasBadge: true, badgeColor: AppColors.success.withOpacity(0.1), badgeTextColor: AppColors.success),
+                      _buildDetailRow('Issued Date', 'May 7, 2026'),
+                      _buildDetailRow('Last Updated', 'May 11, 2026'),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 3. Contact & Location card
+                  _buildSectionCard(
+                    title: 'Contact & Location',
+                    icon: Icons.location_on_outlined,
+                    isDark: isDark,
+                    theme: theme,
+                    rows: [
+                      _buildDetailRow('Email', taxpayer.email ?? 'N/A'),
+                      _buildDetailRow('Phone', taxpayer.phone ?? 'N/A'),
+                      _buildDetailRow('Division', taxpayer.presentAddress?.division ?? 'N/A'),
+                      _buildDetailRow('District', taxpayer.presentAddress?.district ?? 'N/A'),
+                      _buildDetailRow('Address Details', taxpayer.presentAddress?.details ?? 'N/A', isAddress: true),
+                    ],
+                  ),
+                ],
               ],
             ),
-            const SizedBox(height: 20),
-
-            if (!hasTin) ...[
-              // Fallback block if taxpayer does not have a TIN
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.surfaceDark : AppColors.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: isDark ? AppColors.borderDark : AppColors.border),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Icon(Icons.credit_card_off_outlined, size: 72, color: Colors.grey.shade400),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No TIN Registered',
-                      style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'You do not have a Taxpayer Identification Number registered yet. Click below to issue a new TIN instantly.',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/tin-create');
-                      },
-                      icon: const Icon(Icons.add_card_outlined),
-                      label: const Text('Issue TIN Now', style: TextStyle(fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-              ),
-            ] else ...[
-              // Action Buttons Row
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.success, width: 1.5),
-                        foregroundColor: AppColors.success,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onPressed: () => _downloadCertificate(context, taxpayer.tin),
-                      icon: const Icon(Icons.picture_as_pdf_outlined),
-                      label: const Text('Download Certificate', style: TextStyle(fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // Redesigned Top Gradient Badge Card
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppColors.primary, AppColors.primaryLight],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withOpacity(0.3),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 56,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(Icons.person, color: Colors.white, size: 32),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                taxpayer.tin ?? '',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontFamily: 'monospace',
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                taxpayer.fullName ?? taxpayer.companyName ?? 'N/A',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 18,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    // Badges Row
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _buildCardPill(taxpayer.taxpayerType?.category ?? 'Individual', Colors.white.withOpacity(0.2)),
-                        _buildCardPill('Dhaka Tax Zone', Colors.white.withOpacity(0.15)),
-                        _buildCardPill('Dhaka Circle-1', Colors.white.withOpacity(0.1)),
-                        _buildCardPill('Active', Colors.amber.shade400, textColor: Colors.black87),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    const Divider(color: Colors.white24, height: 1),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildStat('Issued Date', 'May 7, 2026'),
-                        _buildStat('Last Updated', 'May 11, 2026'),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // 1. Taxpayer Information card
-              _buildSectionCard(
-                title: 'Taxpayer Information',
-                icon: Icons.business_outlined,
-                isDark: isDark,
-                theme: theme,
-                rows: [
-                  _buildDetailRow('TIN Number', taxpayer.tin ?? 'N/A', hasBadge: true, badgeColor: AppColors.primary.withOpacity(0.1), badgeTextColor: AppColors.primary),
-                  _buildDetailRow('Full Name', taxpayer.fullName ?? taxpayer.companyName ?? 'N/A', isBoldValue: true),
-                  _buildDetailRow('Category', taxpayer.taxpayerType?.category ?? 'Individual'),
-                  _buildDetailRow('National ID', taxpayer.nid ?? 'N/A', hasBadge: true, badgeColor: Colors.blue.shade50, badgeTextColor: Colors.blue.shade800),
-                  _buildDetailRow('Date of Birth', taxpayer.dateOfBirth ?? 'N/A'),
-                  _buildDetailRow('Gender', taxpayer.gender ?? 'N/A'),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // 2. Tax Authority details card
-              _buildSectionCard(
-                title: 'Tax Authority',
-                icon: Icons.shield_outlined,
-                isDark: isDark,
-                theme: theme,
-                rows: [
-                  _buildDetailRow('Tax Zone', 'Dhaka Tax Zone', hasBadge: true, badgeColor: Colors.cyan.shade50, badgeTextColor: Colors.cyan.shade800),
-                  _buildDetailRow('Tax Circle', 'Dhaka Circle-1', hasBadge: true, badgeColor: Colors.grey.shade100, badgeTextColor: Colors.grey.shade700),
-                  _buildDetailRow('Status', taxpayer.approvalStatus ?? 'Active', hasBadge: true, badgeColor: AppColors.success.withOpacity(0.1), badgeTextColor: AppColors.success),
-                  _buildDetailRow('Issued Date', 'May 7, 2026'),
-                  _buildDetailRow('Last Updated', 'May 11, 2026'),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // 3. Contact & Location card
-              _buildSectionCard(
-                title: 'Contact & Location',
-                icon: Icons.location_on_outlined,
-                isDark: isDark,
-                theme: theme,
-                rows: [
-                  _buildDetailRow('Email', taxpayer.email ?? 'N/A'),
-                  _buildDetailRow('Phone', taxpayer.phone ?? 'N/A'),
-                  _buildDetailRow('Division', taxpayer.presentAddress?.division ?? 'N/A'),
-                  _buildDetailRow('District', taxpayer.presentAddress?.district ?? 'N/A'),
-                  _buildDetailRow('Address Details', taxpayer.presentAddress?.details ?? 'N/A', isAddress: true),
-                ],
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );

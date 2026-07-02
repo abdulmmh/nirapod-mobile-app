@@ -83,28 +83,31 @@ class _BusinessScreenState extends State<BusinessScreen> {
         onRefresh: () async {
           // reload data
         },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Title Header
-              Text(
-                'Business Registration',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.teal.shade900,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Manage all registered businesses and trade licenses.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey.shade600,
-                ),
-              ),
-              const SizedBox(height: 20),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1100),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Title Header
+                  Text(
+                    'Business Registration',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.teal.shade900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Manage all registered businesses and trade licenses.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
 
               // KPI Cards Grid (Responsive Layout)
               GridView.count(
@@ -205,7 +208,9 @@ class _BusinessScreenState extends State<BusinessScreen> {
                         return _buildBusinessCard(context, biz, isDark, theme);
                       },
                     ),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

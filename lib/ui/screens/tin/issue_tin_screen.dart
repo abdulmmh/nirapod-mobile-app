@@ -158,248 +158,253 @@ class _IssueTinScreenState extends State<IssueTinScreen> {
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.black,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Header
-              Text(
-                'Issue TIN',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.teal.shade900,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Issue a new Taxpayer Identification Number.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey.shade600,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Card: Find Taxpayer
-              _buildFormSection(
-                title: 'Find Taxpayer',
-                subtitle: 'Search by NID or name — details will auto-fill',
-                icon: Icons.search,
-                isDark: isDark,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1100),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildResponsiveRow(
-                    context,
-                    [
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            hintText: 'Enter NID number or taxpayer name',
-                            hintStyle: const TextStyle(fontSize: 13),
-                            filled: true,
-                            fillColor: Colors.white,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
+                  // Header
+                  Text(
+                    'Issue TIN',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.teal.shade900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Issue a new Taxpayer Identification Number.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Card: Find Taxpayer
+                  _buildFormSection(
+                    title: 'Find Taxpayer',
+                    subtitle: 'Search by NID or name — details will auto-fill',
+                    icon: Icons.search,
+                    isDark: isDark,
+                    children: [
+                      _buildResponsiveRow(
+                        context,
+                        [
+                          Expanded(
+                            child: TextField(
+                              controller: _searchController,
+                              decoration: InputDecoration(
+                                hintText: 'Enter NID number or taxpayer name',
+                                hintStyle: const TextStyle(fontSize: 13),
+                                filled: true,
+                                fillColor: Colors.white,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              ),
                             ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            onPressed: _searchTaxpayer,
+                            child: const Text('Search', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                        spacing: 8,
+                      ),
+                      if (_isAutoFilled) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.success.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.success.withOpacity(0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.flash_on, color: AppColors.success, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(_autoFilledName ?? '', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 13)),
+                                    Text('NID: $_autoFilledNid', style: const TextStyle(color: Colors.grey, fontSize: 11, fontFamily: 'monospace')),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(color: AppColors.success, borderRadius: BorderRadius.circular(4)),
+                                child: const Text('Auto-filled', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        onPressed: _searchTaxpayer,
-                        child: const Text('Search', style: TextStyle(fontWeight: FontWeight.bold)),
-                      ),
+                      ],
                     ],
-                    spacing: 8,
                   ),
-                  if (_isAutoFilled) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.success.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.success.withOpacity(0.3)),
+                  const SizedBox(height: 16),
+
+                  // Card: Taxpayer Information
+                  _buildFormSection(
+                    title: 'Taxpayer Information',
+                    subtitle: 'Name, category and identification',
+                    icon: Icons.assignment_ind_outlined,
+                    isDark: isDark,
+                    children: [
+                      _buildLabel('Taxpayer Name *'),
+                      TextFormField(
+                        controller: TextEditingController(text: _autoFilledName ?? 'Not Auto-filled'),
+                        readOnly: true,
+                        decoration: _inputDecoration('', isDark, isLocked: true),
                       ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.flash_on, color: AppColors.success, size: 20),
-                          const SizedBox(width: 10),
+                      const SizedBox(height: 12),
+                      _buildLabel('TIN Category *'),
+                      _buildDropdownField(_selectedCategory, _categories, (val) => setState(() => _selectedCategory = val), isDark),
+                      const SizedBox(height: 12),
+                      _buildLabel('Issue Date'),
+                      _buildDatePickerField(_issueDate, () => _selectDate(context), isDark),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Card: Location & Tax Authority
+                  _buildFormSection(
+                    title: 'Location & Tax Authority',
+                    subtitle: 'Select division -> district -> tax zone -> tax circle',
+                    icon: Icons.map_outlined,
+                    isDark: isDark,
+                    children: [
+                      _buildResponsiveRow(
+                        context,
+                        [
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(_autoFilledName ?? '', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 13)),
-                                Text('NID: $_autoFilledNid', style: const TextStyle(color: Colors.grey, fontSize: 11, fontFamily: 'monospace')),
+                                _buildLabel('Division *'),
+                                _buildDropdownField(_selectedDivision, _divisions, (val) => setState(() => _selectedDivision = val), isDark),
                               ],
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(color: AppColors.success, borderRadius: BorderRadius.circular(4)),
-                            child: const Text('Auto-filled', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('District *'),
+                                _buildDropdownField(_selectedDistrict, _districts, (val) => setState(() => _selectedDistrict = val), isDark),
+                              ],
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Card: Taxpayer Information
-              _buildFormSection(
-                title: 'Taxpayer Information',
-                subtitle: 'Name, category and identification',
-                icon: Icons.assignment_ind_outlined,
-                isDark: isDark,
-                children: [
-                  _buildLabel('Taxpayer Name *'),
-                  TextFormField(
-                    controller: TextEditingController(text: _autoFilledName ?? 'Not Auto-filled'),
-                    readOnly: true,
-                    decoration: _inputDecoration('', isDark, isLocked: true),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildLabel('TIN Category *'),
-                  _buildDropdownField(_selectedCategory, _categories, (val) => setState(() => _selectedCategory = val), isDark),
-                  const SizedBox(height: 12),
-                  _buildLabel('Issue Date'),
-                  _buildDatePickerField(_issueDate, () => _selectDate(context), isDark),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Card: Location & Tax Authority
-              _buildFormSection(
-                title: 'Location & Tax Authority',
-                subtitle: 'Select division -> district -> tax zone -> tax circle',
-                icon: Icons.map_outlined,
-                isDark: isDark,
-                children: [
-                  _buildResponsiveRow(
-                    context,
-                    [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildLabel('Division *'),
-                            _buildDropdownField(_selectedDivision, _divisions, (val) => setState(() => _selectedDivision = val), isDark),
-                          ],
-                        ),
+                      const SizedBox(height: 12),
+                      _buildLabel('Tax Zone *'),
+                      _buildDropdownField(_selectedZone, _zones, (val) => setState(() => _selectedZone = val), isDark),
+                      const SizedBox(height: 12),
+                      _buildLabel('Tax Circle *'),
+                      _buildDropdownField(_selectedCircle, _circles, (val) => setState(() => _selectedCircle = val), isDark),
+                      const SizedBox(height: 12),
+                      _buildLabel('Email'),
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: _inputDecoration('Enter email', isDark),
                       ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildLabel('District *'),
-                            _buildDropdownField(_selectedDistrict, _districts, (val) => setState(() => _selectedDistrict = val), isDark),
-                          ],
-                        ),
+                      const SizedBox(height: 12),
+                      _buildLabel('Phone *'),
+                      TextFormField(
+                        controller: _phoneController,
+                        validator: (val) => val == null || val.isEmpty ? 'Phone is required' : null,
+                        keyboardType: TextInputType.phone,
+                        decoration: _inputDecoration('01xxx-xxxxxx', isDark),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildLabel('Address'),
+                      TextFormField(
+                        controller: _addressController,
+                        maxLines: 3,
+                        decoration: _inputDecoration('Enter full address...', isDark),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  _buildLabel('Tax Zone *'),
-                  _buildDropdownField(_selectedZone, _zones, (val) => setState(() => _selectedZone = val), isDark),
-                  const SizedBox(height: 12),
-                  _buildLabel('Tax Circle *'),
-                  _buildDropdownField(_selectedCircle, _circles, (val) => setState(() => _selectedCircle = val), isDark),
-                  const SizedBox(height: 12),
-                  _buildLabel('Email'),
-                  TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: _inputDecoration('Enter email', isDark),
+                  const SizedBox(height: 16),
+
+                  // Card: Remarks
+                  _buildFormSection(
+                    title: 'Remarks',
+                    subtitle: 'Optional notes',
+                    icon: Icons.comment_outlined,
+                    isDark: isDark,
+                    children: [
+                      _buildLabel('Remarks'),
+                      TextFormField(
+                        controller: _remarksController,
+                        maxLines: 3,
+                        decoration: _inputDecoration('Optional remarks...', isDark),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  _buildLabel('Phone *'),
-                  TextFormField(
-                    controller: _phoneController,
-                    validator: (val) => val == null || val.isEmpty ? 'Phone is required' : null,
-                    keyboardType: TextInputType.phone,
-                    decoration: _inputDecoration('01xxx-xxxxxx', isDark),
+                  const SizedBox(height: 24),
+
+                  // Bottom buttons
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: _submitForm,
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: const Text('Issue TIN', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                   ),
-                  const SizedBox(height: 12),
-                  _buildLabel('Address'),
-                  TextFormField(
-                    controller: _addressController,
-                    maxLines: 3,
-                    decoration: _inputDecoration('Enter full address...', isDark),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.grey.shade300),
+                      foregroundColor: Colors.grey.shade700,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                    label: const Text('Cancel'),
                   ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.amber, width: 1.5),
+                      foregroundColor: Colors.amber.shade900,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: _resetForm,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Reset'),
+                  ),
+                  const SizedBox(height: 20),
                 ],
               ),
-              const SizedBox(height: 16),
-
-              // Card: Remarks
-              _buildFormSection(
-                title: 'Remarks',
-                subtitle: 'Optional notes',
-                icon: Icons.comment_outlined,
-                isDark: isDark,
-                children: [
-                  _buildLabel('Remarks'),
-                  TextFormField(
-                    controller: _remarksController,
-                    maxLines: 3,
-                    decoration: _inputDecoration('Optional remarks...', isDark),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Bottom buttons
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: _submitForm,
-                icon: const Icon(Icons.check_circle_outline),
-                label: const Text('Issue TIN', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-              ),
-              const SizedBox(height: 10),
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: Colors.grey.shade300),
-                  foregroundColor: Colors.grey.shade700,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close),
-                label: const Text('Cancel'),
-              ),
-              const SizedBox(height: 10),
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.amber, width: 1.5),
-                  foregroundColor: Colors.amber.shade900,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: _resetForm,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Reset'),
-              ),
-              const SizedBox(height: 20),
-            ],
+            ),
           ),
         ),
       ),

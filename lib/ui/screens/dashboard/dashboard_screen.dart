@@ -105,72 +105,77 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: () async => _loadData(),
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // User Header Card
-                    _buildUserHeader(displayName, tinStr, category, approvalStatus, isDark, theme),
-                    const SizedBox(height: 20),
-
-                    // Profile Completion progress card
-                    _buildProfileCompletenessCard(taxpayerProv, theme, isDark),
-                    const SizedBox(height: 20),
-
-                    // Stats Grid Row
-                    GridView.count(
-                      crossAxisCount: 2,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 1.15,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1100),
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        StatCard(
-                          title: 'Returns Filed',
-                          value: '${portalProv.itrs.length}',
-                          icon: '📋',
-                          subtext: 'ITR history count',
+                        // User Header Card
+                        _buildUserHeader(displayName, tinStr, category, approvalStatus, isDark, theme),
+                        const SizedBox(height: 20),
+
+                        // Profile Completion progress card
+                        _buildProfileCompletenessCard(taxpayerProv, theme, isDark),
+                        const SizedBox(height: 20),
+
+                        // Stats Grid Row
+                        GridView.count(
+                          crossAxisCount: 2,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 1.15,
+                          children: [
+                            StatCard(
+                              title: 'Returns Filed',
+                              value: '${portalProv.itrs.length}',
+                              icon: '📋',
+                              subtext: 'ITR history count',
+                            ),
+                            StatCard(
+                              title: 'Outstanding Dues',
+                              value: _formatCurrency(outstandingDues),
+                              icon: '💳',
+                              subtext: 'Unpaid liabilities',
+                              accentColor: outstandingDues > 0 ? AppColors.error : AppColors.success,
+                            ),
+                            StatCard(
+                              title: 'Compliance Rate',
+                              value: '$complianceScore%',
+                              icon: '⚖️',
+                              subtext: 'Accepted vs filed',
+                              accentColor: complianceScore >= 80 ? AppColors.success : AppColors.warning,
+                            ),
+                            StatCard(
+                              title: 'Active Alerts',
+                              value: '${portalProv.notices.where((n) => n.status == 'Unread').length}',
+                              icon: '🔔',
+                              subtext: 'Unread system notices',
+                              accentColor: portalProv.notices.any((n) => n.status == 'Unread') ? AppColors.warning : Colors.grey,
+                            ),
+                          ],
                         ),
-                        StatCard(
-                          title: 'Outstanding Dues',
-                          value: _formatCurrency(outstandingDues),
-                          icon: '💳',
-                          subtext: 'Unpaid liabilities',
-                          accentColor: outstandingDues > 0 ? AppColors.error : AppColors.success,
+                        const SizedBox(height: 24),
+
+                        // Menu label
+                        Text(
+                          'Taxpayer Dashboard Modules',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        StatCard(
-                          title: 'Compliance Rate',
-                          value: '$complianceScore%',
-                          icon: '⚖️',
-                          subtext: 'Accepted vs filed',
-                          accentColor: complianceScore >= 80 ? AppColors.success : AppColors.warning,
-                        ),
-                        StatCard(
-                          title: 'Active Alerts',
-                          value: '${portalProv.notices.where((n) => n.status == 'Unread').length}',
-                          icon: '🔔',
-                          subtext: 'Unread system notices',
-                          accentColor: portalProv.notices.any((n) => n.status == 'Unread') ? AppColors.warning : Colors.grey,
-                        ),
+                        const SizedBox(height: 12),
+
+                        // Dynamic Grid
+                        _buildDashboardGrid(category, context),
                       ],
                     ),
-                    const SizedBox(height: 24),
-
-                    // Menu label
-                    Text(
-                      'Taxpayer Dashboard Modules',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Dynamic Grid
-                    _buildDashboardGrid(category, context),
-                  ],
+                  ),
                 ),
               ),
             ),

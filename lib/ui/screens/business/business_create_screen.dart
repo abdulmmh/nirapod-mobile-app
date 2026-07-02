@@ -180,335 +180,340 @@ class _BusinessCreateScreenState extends State<BusinessCreateScreen> {
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.black,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Header
-              Text(
-                'Register Business',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.teal.shade900,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Register a new business entity.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey.shade600,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Card: Find Taxpayer
-              _buildFormSection(
-                title: 'Find Taxpayer',
-                subtitle: 'Search by TIN number or name — details will auto-fill',
-                icon: Icons.search,
-                isDark: isDark,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1100),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildResponsiveRow(
-                    context,
-                    [
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            hintText: 'Enter TIN number or taxpayer name',
-                            hintStyle: const TextStyle(fontSize: 13),
-                            filled: true,
-                            fillColor: Colors.white,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
+                  // Header
+                  Text(
+                    'Register Business',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.teal.shade900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Register a new business entity.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Card: Find Taxpayer
+                  _buildFormSection(
+                    title: 'Find Taxpayer',
+                    subtitle: 'Search by TIN number or name — details will auto-fill',
+                    icon: Icons.search,
+                    isDark: isDark,
+                    children: [
+                      _buildResponsiveRow(
+                        context,
+                        [
+                          Expanded(
+                            child: TextField(
+                              controller: _searchController,
+                              decoration: InputDecoration(
+                                hintText: 'Enter TIN number or taxpayer name',
+                                hintStyle: const TextStyle(fontSize: 13),
+                                filled: true,
+                                fillColor: Colors.white,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              ),
                             ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            onPressed: _searchTaxpayer,
+                            child: const Text('Search', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                        spacing: 8,
+                      ),
+                      if (_isAutoFilled) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.success.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.success.withOpacity(0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.flash_on, color: AppColors.success, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(_autoFilledName ?? '', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 13)),
+                                    Text('TIN: $_autoFilledTin', style: const TextStyle(color: Colors.grey, fontSize: 11, fontFamily: 'monospace')),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(color: AppColors.success, borderRadius: BorderRadius.circular(4)),
+                                child: const Text('Auto-filled', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        onPressed: _searchTaxpayer,
-                        child: const Text('Search', style: TextStyle(fontWeight: FontWeight.bold)),
-                      ),
+                      ],
                     ],
-                    spacing: 8,
                   ),
-                  if (_isAutoFilled) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.success.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.success.withOpacity(0.3)),
+                  const SizedBox(height: 16),
+
+                  // Card: Business Identity
+                  _buildFormSection(
+                    title: 'Business Identity',
+                    subtitle: 'Basic business identification details',
+                    icon: Icons.business,
+                    isDark: isDark,
+                    children: [
+                      _buildLabel('Business Name *'),
+                      TextFormField(
+                        controller: _nameController,
+                        validator: (val) => val == null || val.isEmpty ? 'Business name is required' : null,
+                        decoration: _inputDecoration('Enter business name', isDark),
                       ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.flash_on, color: AppColors.success, size: 20),
-                          const SizedBox(width: 10),
+                      const SizedBox(height: 12),
+                      _buildLabel('TIN Number'),
+                      TextFormField(
+                        controller: TextEditingController(text: _autoFilledTin ?? 'Not Auto-filled'),
+                        readOnly: true,
+                        decoration: _inputDecoration('', isDark, isLocked: true),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildLabel('Owner Name'),
+                      TextFormField(
+                        controller: TextEditingController(text: _autoFilledName ?? 'Not Auto-filled'),
+                        readOnly: true,
+                        decoration: _inputDecoration('', isDark, isLocked: true),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildResponsiveRow(
+                        context,
+                        [
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(_autoFilledName ?? '', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 13)),
-                                Text('TIN: $_autoFilledTin', style: const TextStyle(color: Colors.grey, fontSize: 11, fontFamily: 'monospace')),
+                                _buildLabel('Business Type *'),
+                                _buildDropdownField(_selectedType, _businessTypes, (val) => setState(() => _selectedType = val), isDark),
                               ],
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(color: AppColors.success, borderRadius: BorderRadius.circular(4)),
-                            child: const Text('Auto-filled', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('Business Category *'),
+                                _buildDropdownField(_selectedCategory, _businessCategories, (val) => setState(() => _selectedCategory = val), isDark),
+                              ],
+                            ),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 12),
+                      _buildLabel('Status'),
+                      _buildDropdownField(_selectedStatus, ['Active', 'Pending', 'Suspended'], (val) => setState(() => _selectedStatus = val ?? 'Active'), isDark),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Card: License & Registration
+                  _buildFormSection(
+                    title: 'License & Registration',
+                    subtitle: 'Trade license, BIN and dates',
+                    icon: Icons.assignment_outlined,
+                    isDark: isDark,
+                    children: [
+                      _buildLabel('Trade License No. *'),
+                      TextFormField(
+                        controller: _licenseController,
+                        validator: (val) => val == null || val.isEmpty ? 'Trade license is required' : null,
+                        decoration: _inputDecoration('e.g. TL-44821', isDark),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildResponsiveRow(
+                        context,
+                        [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('Incorporation Date'),
+                                _buildDatePickerField(_incorporationDate, () => _selectDate(context, 1), isDark),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('Registration Date *'),
+                                _buildDatePickerField(_registrationDate, () => _selectDate(context, 2), isDark),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _buildLabel('Trade License Expiry Date'),
+                      _buildDatePickerField(_expiryDate, () => _selectDate(context, 3), isDark),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Card: Contact & Location
+                  _buildFormSection(
+                    title: 'Contact & Location',
+                    subtitle: 'Contact details and business address',
+                    icon: Icons.location_on_outlined,
+                    isDark: isDark,
+                    children: [
+                      _buildLabel('Email'),
+                      TextFormField(
+                        controller: _emailController,
+                        decoration: _inputDecoration('business@example.com', isDark),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildLabel('Phone *'),
+                      TextFormField(
+                        controller: _phoneController,
+                        validator: (val) => val == null || val.isEmpty ? 'Phone is required' : null,
+                        keyboardType: TextInputType.phone,
+                        decoration: _inputDecoration('01xxx-xxxxxx', isDark),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildResponsiveRow(
+                        context,
+                        [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('Division *'),
+                                _buildDropdownField(_selectedDivision, _divisions, (val) => setState(() => _selectedDivision = val), isDark),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('District *'),
+                                _buildDropdownField(_selectedDistrict, _districts, (val) => setState(() => _selectedDistrict = val), isDark),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _buildLabel('Full Address'),
+                      TextFormField(
+                        controller: _addressController,
+                        maxLines: 3,
+                        decoration: _inputDecoration('Enter full business address...', isDark),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Card: Financial & Workforce
+                  _buildFormSection(
+                    title: 'Financial & Workforce',
+                    subtitle: 'Turnover and employee information',
+                    icon: Icons.monetization_on_outlined,
+                    isDark: isDark,
+                    children: [
+                      _buildLabel('Annual Turnover (৳) *'),
+                      TextFormField(
+                        controller: _turnoverController,
+                        keyboardType: TextInputType.number,
+                        validator: (val) => val == null || val.isEmpty ? 'Annual turnover is required' : null,
+                        decoration: _inputDecoration('0', isDark),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildLabel('Number of Employees'),
+                      TextFormField(
+                        controller: _employeesController,
+                        keyboardType: TextInputType.number,
+                        decoration: _inputDecoration('0', isDark),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildLabel('Remarks'),
+                      TextFormField(
+                        controller: _remarksController,
+                        maxLines: 3,
+                        decoration: _inputDecoration('Optional remarks...', isDark),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Bottom Action Buttons (Register, Cancel, Reset)
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                  ],
+                    onPressed: _submitForm,
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: const Text('Register Business', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.grey.shade300),
+                      foregroundColor: Colors.grey.shade700,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                    label: const Text('Cancel'),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.amber, width: 1.5),
+                      foregroundColor: Colors.amber.shade900,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: _resetForm,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Reset'),
+                  ),
+                  const SizedBox(height: 20),
                 ],
               ),
-              const SizedBox(height: 16),
-
-              // Card: Business Identity
-              _buildFormSection(
-                title: 'Business Identity',
-                subtitle: 'Basic business identification details',
-                icon: Icons.business,
-                isDark: isDark,
-                children: [
-                  _buildLabel('Business Name *'),
-                  TextFormField(
-                    controller: _nameController,
-                    validator: (val) => val == null || val.isEmpty ? 'Business name is required' : null,
-                    decoration: _inputDecoration('Enter business name', isDark),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildLabel('TIN Number'),
-                  TextFormField(
-                    controller: TextEditingController(text: _autoFilledTin ?? 'Not Auto-filled'),
-                    readOnly: true,
-                    decoration: _inputDecoration('', isDark, isLocked: true),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildLabel('Owner Name'),
-                  TextFormField(
-                    controller: TextEditingController(text: _autoFilledName ?? 'Not Auto-filled'),
-                    readOnly: true,
-                    decoration: _inputDecoration('', isDark, isLocked: true),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildResponsiveRow(
-                    context,
-                    [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildLabel('Business Type *'),
-                            _buildDropdownField(_selectedType, _businessTypes, (val) => setState(() => _selectedType = val), isDark),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildLabel('Business Category *'),
-                            _buildDropdownField(_selectedCategory, _businessCategories, (val) => setState(() => _selectedCategory = val), isDark),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _buildLabel('Status'),
-                  _buildDropdownField(_selectedStatus, ['Active', 'Pending', 'Suspended'], (val) => setState(() => _selectedStatus = val ?? 'Active'), isDark),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Card: License & Registration
-              _buildFormSection(
-                title: 'License & Registration',
-                subtitle: 'Trade license, BIN and dates',
-                icon: Icons.assignment_outlined,
-                isDark: isDark,
-                children: [
-                  _buildLabel('Trade License No. *'),
-                  TextFormField(
-                    controller: _licenseController,
-                    validator: (val) => val == null || val.isEmpty ? 'Trade license is required' : null,
-                    decoration: _inputDecoration('e.g. TL-44821', isDark),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildResponsiveRow(
-                    context,
-                    [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildLabel('Incorporation Date'),
-                            _buildDatePickerField(_incorporationDate, () => _selectDate(context, 1), isDark),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildLabel('Registration Date *'),
-                            _buildDatePickerField(_registrationDate, () => _selectDate(context, 2), isDark),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _buildLabel('Trade License Expiry Date'),
-                  _buildDatePickerField(_expiryDate, () => _selectDate(context, 3), isDark),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Card: Contact & Location
-              _buildFormSection(
-                title: 'Contact & Location',
-                subtitle: 'Contact details and business address',
-                icon: Icons.location_on_outlined,
-                isDark: isDark,
-                children: [
-                  _buildLabel('Email'),
-                  TextFormField(
-                    controller: _emailController,
-                    decoration: _inputDecoration('business@example.com', isDark),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildLabel('Phone *'),
-                  TextFormField(
-                    controller: _phoneController,
-                    validator: (val) => val == null || val.isEmpty ? 'Phone is required' : null,
-                    keyboardType: TextInputType.phone,
-                    decoration: _inputDecoration('01xxx-xxxxxx', isDark),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildResponsiveRow(
-                    context,
-                    [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildLabel('Division *'),
-                            _buildDropdownField(_selectedDivision, _divisions, (val) => setState(() => _selectedDivision = val), isDark),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildLabel('District *'),
-                            _buildDropdownField(_selectedDistrict, _districts, (val) => setState(() => _selectedDistrict = val), isDark),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _buildLabel('Full Address'),
-                  TextFormField(
-                    controller: _addressController,
-                    maxLines: 3,
-                    decoration: _inputDecoration('Enter full business address...', isDark),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Card: Financial & Workforce
-              _buildFormSection(
-                title: 'Financial & Workforce',
-                subtitle: 'Turnover and employee information',
-                icon: Icons.monetization_on_outlined,
-                isDark: isDark,
-                children: [
-                  _buildLabel('Annual Turnover (৳) *'),
-                  TextFormField(
-                    controller: _turnoverController,
-                    keyboardType: TextInputType.number,
-                    validator: (val) => val == null || val.isEmpty ? 'Annual turnover is required' : null,
-                    decoration: _inputDecoration('0', isDark),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildLabel('Number of Employees'),
-                  TextFormField(
-                    controller: _employeesController,
-                    keyboardType: TextInputType.number,
-                    decoration: _inputDecoration('0', isDark),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildLabel('Remarks'),
-                  TextFormField(
-                    controller: _remarksController,
-                    maxLines: 3,
-                    decoration: _inputDecoration('Optional remarks...', isDark),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Bottom Action Buttons (Register, Cancel, Reset)
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: _submitForm,
-                icon: const Icon(Icons.check_circle_outline),
-                label: const Text('Register Business', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-              ),
-              const SizedBox(height: 10),
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: Colors.grey.shade300),
-                  foregroundColor: Colors.grey.shade700,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close),
-                label: const Text('Cancel'),
-              ),
-              const SizedBox(height: 10),
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.amber, width: 1.5),
-                  foregroundColor: Colors.amber.shade900,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: _resetForm,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Reset'),
-              ),
-              const SizedBox(height: 20),
-            ],
+            ),
           ),
         ),
       ),
