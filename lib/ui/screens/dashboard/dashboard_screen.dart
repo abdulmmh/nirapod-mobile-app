@@ -6,6 +6,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../providers/taxpayer_provider.dart';
 import '../../../providers/portal_provider.dart';
 import '../../widgets/stat_card.dart';
+import '../../widgets/portal_shell.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({Key? key}) : super(key: key);
@@ -47,6 +48,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final double gridWidth = screenWidth.clamp(0.0, 1100.0);
+
+    final int statsCrossAxisCount = screenWidth < 720 ? 2 : 4;
+    final double statsCardWidth = (gridWidth - 32 - (statsCrossAxisCount - 1) * 12) / statsCrossAxisCount;
+    final double statsCardHeight = screenWidth < 720 ? 128 : 110;
+    final double statsAspectRatio = statsCardWidth / statsCardHeight;
     
     final auth = Provider.of<AuthProvider>(context);
     final taxpayerProv = Provider.of<TaxpayerProvider>(context);
@@ -82,40 +90,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
       complianceScore = ((accepted / portalProv.itrs.length) * 100).round();
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
+    if (taxpayerProv.isLoading || portalProv.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    return PortalShell(
+      body: RefreshIndicator(
+        onRefresh: () async => _loadData(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.shield_outlined, color: AppColors.primary, size: 28),
-            const SizedBox(width: 8),
-            Text('Nirapod Tax', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout_outlined),
-            onPressed: () async {
-              await auth.logout();
-              if (mounted) Navigator.pushReplacementNamed(context, '/login');
-            },
-          ),
-        ],
-      ),
-      body: taxpayerProv.isLoading || portalProv.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: () async => _loadData(),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1100),
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // User Header Card
-                        _buildUserHeader(displayName, tinStr, category, approvalStatus, isDark, theme),
+            // User Header Card
+            _buildUserHeader(displayName, tinStr, category, approvalStatus, isDark, theme),
                         const SizedBox(height: 20),
 
                         // Profile Completion progress card
@@ -124,37 +110,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                         // Stats Grid Row
                         GridView.count(
-                          crossAxisCount: 2,
+                          crossAxisCount: statsCrossAxisCount,
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
-                          childAspectRatio: 1.15,
+                          childAspectRatio: statsAspectRatio,
                           children: [
                             StatCard(
                               title: 'Returns Filed',
                               value: '${portalProv.itrs.length}',
-                              icon: '📋',
+                              icon: Icons.assignment_outlined,
+                              iconColor: AppColors.primary,
                               subtext: 'ITR history count',
                             ),
                             StatCard(
                               title: 'Outstanding Dues',
                               value: _formatCurrency(outstandingDues),
-                              icon: '💳',
+                              icon: Icons.account_balance_wallet_outlined,
+                              iconColor: outstandingDues > 0 ? AppColors.error : AppColors.success,
                               subtext: 'Unpaid liabilities',
                               accentColor: outstandingDues > 0 ? AppColors.error : AppColors.success,
                             ),
                             StatCard(
                               title: 'Compliance Rate',
                               value: '$complianceScore%',
-                              icon: '⚖️',
+                              icon: Icons.verified_user_outlined,
+                              iconColor: complianceScore >= 80 ? AppColors.success : AppColors.warning,
                               subtext: 'Accepted vs filed',
                               accentColor: complianceScore >= 80 ? AppColors.success : AppColors.warning,
                             ),
                             StatCard(
                               title: 'Active Alerts',
                               value: '${portalProv.notices.where((n) => n.status == 'Unread').length}',
-                              icon: '🔔',
+                              icon: Icons.notifications_active_outlined,
+                              iconColor: portalProv.notices.any((n) => n.status == 'Unread') ? AppColors.warning : Colors.grey,
                               subtext: 'Unread system notices',
                               accentColor: portalProv.notices.any((n) => n.status == 'Unread') ? AppColors.warning : Colors.grey,
                             ),
@@ -173,12 +163,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                         // Dynamic Grid
                         _buildDashboardGrid(category, context),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -191,68 +178,88 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ThemeData theme,
   ) {
     Color statusColor;
+    Color statusBg;
     switch (status.toLowerCase()) {
       case 'approved':
-        statusColor = AppColors.success;
+        statusColor = const Color(0xFF4ADE80); // Bright light green
+        statusBg = Colors.white.withOpacity(0.12);
         break;
       case 'pending':
-        statusColor = AppColors.warning;
+        statusColor = const Color(0xFFFBBF24); // Bright amber
+        statusBg = Colors.white.withOpacity(0.12);
         break;
       default:
-        statusColor = AppColors.error;
+        statusColor = const Color(0xFFF87171); // Bright red
+        statusBg = Colors.white.withOpacity(0.12);
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark ? AppColors.borderDark : AppColors.border,
+        gradient: LinearGradient(
+          colors: isDark 
+            ? [const Color(0xFF1E293B), const Color(0xFF0F172A)] 
+            : [AppColors.primary, AppColors.primaryDark],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(isDark ? 0.0 : 0.15),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 30,
-            backgroundColor: AppColors.primary.withOpacity(0.1),
+            backgroundColor: Colors.white,
             child: Text(
-              name.substring(0, 1).toUpperCase(),
+              name.isNotEmpty ? name.substring(0, 1).toUpperCase() : 'N',
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primary),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 18),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   name,
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'TIN: $tin',
-                  style: theme.textTheme.bodyMedium?.copyWith(
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.85),
                     fontFamily: 'monospace',
                     fontSize: 13,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.08),
+                        color: Colors.white.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         category,
                         style: const TextStyle(
-                          color: AppColors.primary,
+                          color: Colors.white,
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                         ),
@@ -262,16 +269,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.08),
+                        color: statusBg,
                         borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: statusColor.withOpacity(0.5), width: 1),
                       ),
-                      child: Text(
-                        status,
-                        style: TextStyle(
-                          color: statusColor,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: statusColor,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            status,
+                            style: TextStyle(
+                              color: statusColor,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -339,6 +361,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
               style: theme.textTheme.bodySmall?.copyWith(color: AppColors.error),
             ),
           ],
+          if (completion < 100) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF14532D),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () => Navigator.pushNamed(context, '/profile-edit'),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Text(
+                      'Complete Profile',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    SizedBox(width: 8),
+                    Icon(Icons.arrow_forward, size: 16),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -346,83 +394,97 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildDashboardGrid(String category, BuildContext context) {
     final List<Map<String, dynamic>> menuItems;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final double gridWidth = screenWidth.clamp(0.0, 1100.0);
+    final int crossAxisCount = screenWidth < 600 ? 3 : (screenWidth < 900 ? 4 : 6);
+    final double cardWidth = (gridWidth - 32 - (crossAxisCount - 1) * 12) / crossAxisCount;
+    final double cardHeight = screenWidth < 600 ? 136 : 115;
+    final double aspectRatio = cardWidth / cardHeight;
 
     if (category.toLowerCase() == 'individual') {
       menuItems = [
-        {'label': 'My TIN Details', 'icon': '🪪', 'route': '/profile'},
-        {'label': 'My Businesses', 'icon': '🏪', 'route': '/businesses'},
-        {'label': 'Income Tax Return', 'icon': '📋', 'route': '/itr'},
-        {'label': 'AIT Records', 'icon': '📊', 'route': '/ait'},
-        {'label': 'Payments', 'icon': '💳', 'route': '/payments'},
-        {'label': 'Official Notices', 'icon': '🔔', 'route': '/notices'},
-        {'label': 'My Audits', 'icon': '🔍', 'route': '/audits'},
-        {'label': 'My Appeals', 'icon': '⚖️', 'route': '/appeals'},
+        {'label': 'My TIN Details', 'icon': Icons.badge_outlined, 'color': AppColors.primary, 'route': '/profile'},
+        {'label': 'My Businesses', 'icon': Icons.storefront_outlined, 'color': Colors.indigo, 'route': '/businesses'},
+        {'label': 'Income Tax Return', 'icon': Icons.description_outlined, 'color': Colors.orange, 'route': '/itr'},
+        {'label': 'AIT Records', 'icon': Icons.receipt_long_outlined, 'color': Colors.purple, 'route': '/ait'},
+        {'label': 'Payments', 'icon': Icons.payment_outlined, 'color': Colors.green, 'route': '/payments'},
+        {'label': 'Official Notices', 'icon': Icons.campaign_outlined, 'color': Colors.red, 'route': '/notices'},
+        {'label': 'My Audits', 'icon': Icons.search_outlined, 'color': Colors.blue, 'route': '/audits'},
+        {'label': 'My Appeals', 'icon': Icons.gavel_outlined, 'color': Colors.amber, 'route': '/appeals'},
       ];
     } else if (category.toLowerCase() == 'business') {
       menuItems = [
-        {'label': 'My TIN Details', 'icon': '🪪', 'route': '/profile'},
-        {'label': 'VAT Registrations', 'icon': '🏢', 'route': '/businesses'},
-        {'label': 'VAT Returns', 'icon': '📋', 'route': '/itr'},
-        {'label': 'Payments', 'icon': '💳', 'route': '/payments'},
-        {'label': 'Official Notices', 'icon': '🔔', 'route': '/notices'},
-        {'label': 'My Audits', 'icon': '🔍', 'route': '/audits'},
+        {'label': 'My TIN Details', 'icon': Icons.badge_outlined, 'color': AppColors.primary, 'route': '/profile'},
+        {'label': 'VAT Registrations', 'icon': Icons.storefront_outlined, 'color': Colors.indigo, 'route': '/businesses'},
+        {'label': 'VAT Returns', 'icon': Icons.description_outlined, 'color': Colors.orange, 'route': '/itr'},
+        {'label': 'Payments', 'icon': Icons.payment_outlined, 'color': Colors.green, 'route': '/payments'},
+        {'label': 'Official Notices', 'icon': Icons.campaign_outlined, 'color': Colors.red, 'route': '/notices'},
+        {'label': 'My Audits', 'icon': Icons.search_outlined, 'color': Colors.blue, 'route': '/audits'},
       ];
     } else {
       menuItems = [
-        {'label': 'My TIN Details', 'icon': '🪪', 'route': '/profile'},
-        {'label': 'Income Tax Return', 'icon': '📋', 'route': '/itr'},
-        {'label': 'Payments', 'icon': '💳', 'route': '/payments'},
-        {'label': 'Official Notices', 'icon': '🔔', 'route': '/notices'},
-        {'label': 'My Audits', 'icon': '🔍', 'route': '/audits'},
-        {'label': 'My Appeals', 'icon': '⚖️', 'route': '/appeals'},
+        {'label': 'My TIN Details', 'icon': Icons.badge_outlined, 'color': AppColors.primary, 'route': '/profile'},
+        {'label': 'Income Tax Return', 'icon': Icons.description_outlined, 'color': Colors.orange, 'route': '/itr'},
+        {'label': 'Payments', 'icon': Icons.payment_outlined, 'color': Colors.green, 'route': '/payments'},
+        {'label': 'Official Notices', 'icon': Icons.campaign_outlined, 'color': Colors.red, 'route': '/notices'},
+        {'label': 'My Audits', 'icon': Icons.search_outlined, 'color': Colors.blue, 'route': '/audits'},
+        {'label': 'My Appeals', 'icon': Icons.gavel_outlined, 'color': Colors.amber, 'route': '/appeals'},
       ];
     }
 
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 0.95,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: aspectRatio,
       ),
       itemCount: menuItems.length,
       itemBuilder: (context, index) {
         final item = menuItems[index];
-        return InkWell(
-          onTap: () => Navigator.pushNamed(context, item['route']),
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? AppColors.surfaceDark
-                  : AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? AppColors.borderDark
-                    : AppColors.border,
-              ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  item['icon'],
-                  style: const TextStyle(fontSize: 32),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  item['label'],
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 11.5,
+        final itemColor = item['color'] as Color;
+        final itemIcon = item['icon'] as IconData;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+
+        return Card(
+          margin: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => Navigator.pushNamed(context, item['route']),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: itemColor.withOpacity(0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      itemIcon,
+                      color: itemColor,
+                      size: 24,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 10),
+                  Text(
+                    item['label'],
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );

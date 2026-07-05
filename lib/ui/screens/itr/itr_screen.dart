@@ -6,6 +6,10 @@ import '../../../providers/portal_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../data/models/portal_records.dart';
 import '../../widgets/custom_button.dart';
+import '../../widgets/stat_card.dart';
+import 'itr_details_screen.dart';
+import 'itr_wizard_screen.dart';
+import '../../widgets/portal_shell.dart';
 
 class ItrScreen extends StatefulWidget {
   const ItrScreen({Key? key}) : super(key: key);
@@ -15,206 +19,19 @@ class ItrScreen extends StatefulWidget {
 }
 
 class _ItrScreenState extends State<ItrScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _yearController = TextEditingController(text: '2025-2026');
-  final _grossTaxController = TextEditingController();
-  final _rebateController = TextEditingController();
-  final _advancePaidController = TextEditingController();
-  final _taxPaidController = TextEditingController();
+  String searchQuery = '';
+  String statusFilter = 'All';
+  String categoryFilter = 'All';
+  final ScrollController _tableScrollController = ScrollController();
+
+  final List<String> statusOptions = ['All', 'Draft', 'Submitted', 'Under Review', 'Accepted', 'Rejected', 'Send Back'];
+  final List<String> categoryOptions = ['All', 'Individual', 'Company', 'Partnership', 'NGO'];
 
   @override
   void dispose() {
-    _yearController.dispose();
-    _grossTaxController.dispose();
-    _rebateController.dispose();
-    _advancePaidController.dispose();
-    _taxPaidController.dispose();
+    _tableScrollController.dispose();
     super.dispose();
   }
-
-  void _openFileReturnSheet(BuildContext context, int taxpayerId) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).brightness == Brightness.dark
-          ? AppColors.backgroundDark
-          : AppColors.background,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-            top: 24,
-            left: 20,
-            right: 20,
-          ),
-          child: SingleChildScrollView(
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'File Income Tax Return',
-                        style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  
-                  TextFormField(
-                    controller: _yearController,
-                    decoration: const InputDecoration(labelText: 'Assessment Year'),
-                    validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  TextFormField(
-                    controller: _grossTaxController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Gross Tax (৳)',
-                      hintText: 'Enter total tax liability',
-                    ),
-                    validator: (v) => v == null || double.tryParse(v) == null ? 'Enter valid number' : null,
-                  ),
-                  const SizedBox(height: 16),
-
-                  TextFormField(
-                    controller: _rebateController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Tax Rebate / Discount (৳)',
-                      hintText: 'Enter total investment rebates',
-                    ),
-                    validator: (v) => v == null || double.tryParse(v) == null ? 'Enter valid number' : null,
-                  ),
-                  const SizedBox(height: 16),
-
-                  TextFormField(
-                    controller: _advancePaidController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Advance Tax Paid / AIT (৳)',
-                    ),
-                    validator: (v) => v == null || double.tryParse(v) == null ? 'Enter valid number' : null,
-                  ),
-                  const SizedBox(height: 16),
-
-                  TextFormField(
-                    controller: _taxPaidController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Remaining Tax Paid with Return (৳)',
-                    ),
-                    validator: (v) => v == null || double.tryParse(v) == null ? 'Enter valid number' : null,
-                  ),
-                  const SizedBox(height: 24),
-
-                  CustomButton(
-                    text: 'Submit Tax Return',
-                    onPressed: () async {
-                      if (!_formKey.currentState!.validate()) return;
-                      
-                      final gross = double.parse(_grossTaxController.text);
-                      final rebate = double.parse(_rebateController.text);
-                      final advance = double.parse(_advancePaidController.text);
-                      final paid = double.parse(_taxPaidController.text);
-
-                      final itr = ItrRecord(
-                        id: 0,
-                        taxpayerId: taxpayerId,
-                        assessmentYear: _yearController.text,
-                        grossTax: gross,
-                        rebate: rebate,
-                        netTaxPayable: gross - rebate,
-                        advanceTaxPaid: advance,
-                        withholdingTax: 0,
-                        taxPaid: paid,
-                        status: 'Submitted',
-                      );
-
-                      final success = await Provider.of<PortalProvider>(context, listen: false).createItr(itr);
-                      if (success && mounted) {
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Tax return filed successfully!'),
-                            backgroundColor: AppColors.success,
-                          ),
-                        );
-                        _grossTaxController.clear();
-                        _rebateController.clear();
-                        _advancePaidController.clear();
-                        _taxPaidController.clear();
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final portalProv = Provider.of<PortalProvider>(context);
-    final auth = Provider.of<AuthProvider>(context);
-    
-    final taxpayerId = auth.currentUser?.taxpayerId ?? 0;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Income Tax Returns'),
-      ),
-      body: portalProv.itrs.isEmpty
-          ? const Center(child: Text('No return filings found.'))
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: portalProv.itrs.length,
-              itemBuilder: (context, index) {
-                final itr = portalProv.itrs[index];
-                return ItrCard(itr: itr, isDark: isDark, theme: theme);
-              },
-            ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openFileReturnSheet(context, taxpayerId),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('File Return'),
-      ),
-    );
-  }
-}
-
-class ItrCard extends StatelessWidget {
-  final ItrRecord itr;
-  final bool isDark;
-  final ThemeData theme;
-
-  const ItrCard({
-    Key? key,
-    required this.itr,
-    required this.isDark,
-    required this.theme,
-  }) : super(key: key);
 
   String _formatDate(String? dateStr) {
     if (dateStr == null) return '—';
@@ -231,112 +48,573 @@ class ItrCard extends StatelessWidget {
     return NumberFormat.currency(locale: 'en_BD', symbol: '৳ ', decimalDigits: 0).format(amt);
   }
 
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'accepted':
+        return AppColors.success;
+      case 'submitted':
+        return AppColors.info;
+      case 'under review':
+        return AppColors.accent;
+      case 'rejected':
+        return AppColors.error;
+      case 'draft':
+        return Colors.grey;
+      case 'send back':
+        return AppColors.warning;
+      default:
+        return Colors.grey;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    Color statusColor;
-    switch (itr.status.toLowerCase()) {
-      case 'accepted':
-        statusColor = AppColors.success;
-        break;
-      case 'submitted':
-        statusColor = AppColors.info;
-        break;
-      case 'under audit':
-        statusColor = AppColors.warning;
-        break;
-      default:
-        statusColor = Colors.grey;
-    }
+    final localTheme = ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      primaryColor: AppColors.primary,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: AppColors.primary,
+        brightness: Brightness.light,
+        background: const Color(0xFFF5F5F5),
+      ),
+      scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+      cardColor: Colors.white,
+      dividerColor: AppColors.border,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+      ),
+    );
 
-    final double netTax = itr.netTaxPayable ?? ((itr.grossTax ?? 0) - (itr.rebate ?? 0));
+    final theme = localTheme;
+    const isDark = false;
+    final portalProv = Provider.of<PortalProvider>(context);
+    final auth = Provider.of<AuthProvider>(context);
+    final isMobile = MediaQuery.of(context).size.width < 900;
+    
+    final taxpayerId = auth.currentUser?.taxpayerId ?? 0;
+    final taxpayerName = auth.currentUser?.fullName ?? 'Tasrif Zaman';
+    final tinNumber = auth.currentUser?.tinNumber ?? 'TIN-000000005';
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: ExpansionTile(
-        title: Text(
-          'Assessment Year: ${itr.assessmentYear}',
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Row(
+    // Calculate ITR stats
+    final totalFiled = portalProv.itrs.length;
+    final acceptedCount = portalProv.itrs.where((r) => r.status.toLowerCase() == 'accepted').length;
+    final pendingCount = portalProv.itrs.where((r) => r.status.toLowerCase() == 'under review' || r.status.toLowerCase() == 'submitted').length;
+    final draftCount = portalProv.itrs.where((r) => r.status.toLowerCase() == 'draft').length;
+    final double totalTaxPaid = portalProv.itrs.fold(0.0, (sum, item) => sum + (item.taxPaid ?? 0.0) + (item.advanceTaxPaid ?? 0.0));
+
+    // Filtered list
+    final filteredItrs = portalProv.itrs.where((r) {
+      final matchesSearch = (r.returnNo?.toLowerCase().contains(searchQuery.toLowerCase()) ?? true) ||
+          r.assessmentYear.contains(searchQuery) ||
+          (r.taxpayerName?.toLowerCase().contains(searchQuery.toLowerCase()) ?? true);
+
+      final matchesStatus = statusFilter == 'All' || r.status.toLowerCase() == statusFilter.toLowerCase();
+      final matchesCategory = categoryFilter == 'All' || r.itrCategory?.toLowerCase() == categoryFilter.toLowerCase();
+
+      return matchesSearch && matchesStatus && matchesCategory;
+    }).toList();
+
+    return Theme(
+      data: localTheme,
+      child: PortalShell(
+        breadcrumbs: const ['My Portal', 'ITR'],
+        showBackButton: true,
+        floatingActionButton: isMobile
+            ? FloatingActionButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => ItrWizardScreen(taxpayerId: taxpayerId, taxpayerName: taxpayerName, tinNumber: tinNumber)),
+                ),
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                child: const Icon(Icons.add),
+              )
+            : null,
+        body: portalProv.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: () => portalProv.loadAllData(taxpayerId, auth.currentUser?.taxpayerType ?? 'Individual'),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Header title block matching NBR design
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Income Tax Returns (ITR)',
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.teal.shade900,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Filing & calculations records',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (!isMobile)
+                          ElevatedButton.icon(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => ItrWizardScreen(taxpayerId: taxpayerId, taxpayerName: taxpayerName, tinNumber: tinNumber)),
+                            ),
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text('File New Return'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // KPI Statistics Row
+                    _buildKpiRow(isMobile, totalFiled, acceptedCount, pendingCount, draftCount, totalTaxPaid),
+                    const SizedBox(height: 24),
+
+                    // Filter & Search bar card
+                    _buildFilterSection(isDark, theme),
+                    const SizedBox(height: 20),
+
+                    // List of ITR returns
+                    filteredItrs.isEmpty
+                        ? _buildEmptyState(theme, isDark)
+                        : (isMobile
+                            ? _buildMobileList(filteredItrs, isDark, theme)
+                            : _buildDesktopTable(filteredItrs, isDark, theme)),
+                  ],
+                ),
+              ),
+      ),
+    );
+  }
+
+  // Horizontally scrollable row on mobile, grid/row on desktop
+  Widget _buildKpiRow(bool isMobile, int total, int accepted, int pending, int drafts, double totalPaid) {
+    final widgets = [
+      StatCard(
+        title: 'Total Filings',
+        value: total.toString(),
+        icon: Icons.assignment_outlined,
+        iconColor: AppColors.primary,
+        subtext: 'All periods',
+        accentColor: AppColors.primary,
+        onTap: () => setState(() => statusFilter = 'All'),
+        isSelected: statusFilter == 'All',
+      ),
+      StatCard(
+        title: 'Accepted',
+        value: accepted.toString(),
+        icon: Icons.verified_user_outlined,
+        iconColor: AppColors.success,
+        subtext: 'Verified by NBR',
+        accentColor: AppColors.success,
+        onTap: () => setState(() => statusFilter = 'Accepted'),
+        isSelected: statusFilter == 'Accepted',
+      ),
+      StatCard(
+        title: 'Pending Review',
+        value: pending.toString(),
+        icon: Icons.pending_actions_outlined,
+        iconColor: AppColors.info,
+        subtext: 'Under processing',
+        accentColor: AppColors.info,
+        onTap: () => setState(() => statusFilter = 'Under Review'),
+        isSelected: statusFilter == 'Under Review',
+      ),
+      StatCard(
+        title: 'Draft / Send Back',
+        value: drafts.toString(),
+        icon: Icons.edit_note_outlined,
+        iconColor: AppColors.warning,
+        subtext: 'Needs action',
+        accentColor: AppColors.warning,
+        onTap: () => setState(() => statusFilter = 'Draft'),
+        isSelected: statusFilter == 'Draft',
+      ),
+      StatCard(
+        title: 'Total Tax Contributed',
+        value: _formatAmount(totalPaid),
+        icon: Icons.payments_outlined,
+        iconColor: Colors.purple,
+        subtext: 'AIT & self-paid',
+        accentColor: Colors.purple,
+      ),
+    ];
+
+    if (isMobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  itr.status,
-                  style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Filed: ${_formatDate(itr.submissionDate)}',
-                style: const TextStyle(fontSize: 12),
-              ),
+              Expanded(child: widgets[0]),
+              const SizedBox(width: 8),
+              Expanded(child: widgets[1]),
             ],
           ),
-        ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(child: widgets[2]),
+              const SizedBox(width: 8),
+              Expanded(child: widgets[3]),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(child: widgets[4]),
+            ],
+          ),
+        ],
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _buildItrDetailRow('Gross Tax Amount', _formatAmount(itr.grossTax), theme),
-                _buildItrDetailRow('Investment Rebate', _formatAmount(itr.rebate), theme),
-                const Divider(),
-                _buildItrDetailRow('Net Tax Payable', _formatAmount(netTax), theme, isBold: true),
-                _buildItrDetailRow('Advance Tax / AIT Paid', _formatAmount(itr.advanceTaxPaid), theme),
-                _buildItrDetailRow('Tax Paid with Return', _formatAmount(itr.taxPaid), theme),
-                const Divider(),
-                _buildItrDetailRow(
-                  'Outstanding Dues',
-                  _formatAmount(MathMax(0.0, netTax - ((itr.advanceTaxPaid ?? 0) + (itr.taxPaid ?? 0)))),
-                  theme,
-                  accentColor: netTax - ((itr.advanceTaxPaid ?? 0) + (itr.taxPaid ?? 0)) > 0
-                      ? AppColors.error
-                      : AppColors.success,
-                  isBold: true,
-                ),
-              ],
-            ),
-          )
+          Expanded(child: widgets[0]),
+          const SizedBox(width: 12),
+          Expanded(child: widgets[1]),
+          const SizedBox(width: 12),
+          Expanded(child: widgets[2]),
+          const SizedBox(width: 12),
+          Expanded(child: widgets[3]),
+          const SizedBox(width: 12),
+          Expanded(child: widgets[4]),
         ],
       ),
     );
   }
 
-  double MathMax(double a, double b) => a > b ? a : b;
-
-  Widget _buildItrDetailRow(
-    String label,
-    String value,
-    ThemeData theme, {
-    bool isBold = false,
-    Color? accentColor,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildFilterSection(bool isDark, ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? AppColors.borderDark : AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            ),
+          Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: TextField(
+                  onChanged: (val) => setState(() => searchQuery = val),
+                  decoration: InputDecoration(
+                    hintText: 'Search by Return No or Year...',
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                  ),
+                ),
+              ),
+            ],
           ),
-          Text(
-            value,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              color: accentColor,
-            ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth > 500) {
+                return Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: statusFilter,
+                        decoration: const InputDecoration(labelText: 'Status', contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+                        items: statusOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                        onChanged: (val) => setState(() => statusFilter = val ?? 'All'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: categoryFilter,
+                        decoration: const InputDecoration(labelText: 'Category', contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+                        items: categoryOptions.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                        onChanged: (val) => setState(() => categoryFilter = val ?? 'All'),
+                      ),
+                    ),
+                  ],
+                );
+              } else {
+                return Column(
+                  children: [
+                    DropdownButtonFormField<String>(
+                      value: statusFilter,
+                      decoration: const InputDecoration(labelText: 'Status', contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+                      items: statusOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                      onChanged: (val) => setState(() => statusFilter = val ?? 'All'),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: categoryFilter,
+                      decoration: const InputDecoration(labelText: 'Category', contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+                      items: categoryOptions.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                      onChanged: (val) => setState(() => categoryFilter = val ?? 'All'),
+                    ),
+                  ],
+                );
+              }
+            },
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(ThemeData theme, bool isDark) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 60),
+        child: Column(
+          children: [
+            const Icon(Icons.receipt_long_outlined, size: 80, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text(
+              'No returns match your filter.',
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Try adjusting search queries or filing a new return.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileList(List<ItrRecord> list, bool isDark, ThemeData theme) {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: list.length,
+      itemBuilder: (context, index) {
+        final r = list[index];
+        final statusColor = _getStatusColor(r.status);
+        final netPayable = (r.grossTax ?? 0.0) - (r.rebate ?? 0.0);
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 14),
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: isDark ? AppColors.borderDark : AppColors.border),
+          ),
+          child: InkWell(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => ItrDetailsScreen(itrId: r.id)),
+            ),
+            child: Row(
+              children: [
+                // Left accent border indicating status
+                Container(
+                  width: 6,
+                  height: 150,
+                  color: statusColor,
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              r.returnNo ?? 'Draft ITR',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: statusColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                r.status,
+                                style: TextStyle(
+                                  color: statusColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          r.taxpayerName ?? 'Tasrif Zaman',
+                          style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'TIN: ${r.tinNumber ?? '—'} · Assessment: ${r.assessmentYear}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                          ),
+                        ),
+                        const Divider(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(child: _buildInfoCol('Gross Income', _formatAmount(r.grossIncome), theme, isDark)),
+                            Expanded(child: _buildInfoCol('Net Tax', _formatAmount(netPayable), theme, isDark)),
+                            Expanded(child: _buildInfoCol('Tax Paid', _formatAmount(r.taxPaid), theme, isDark)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildInfoCol(String label, String val, ThemeData theme, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            fontSize: 9,
+            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          val,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopTable(List<ItrRecord> list, bool isDark, ThemeData theme) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? AppColors.borderDark : AppColors.border),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Scrollbar(
+          controller: _tableScrollController,
+          thumbVisibility: true,
+          child: SingleChildScrollView(
+            controller: _tableScrollController,
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              headingRowColor: WidgetStateProperty.all(isDark ? Colors.grey.shade900 : Colors.grey.shade50),
+              dataRowHeight: 64,
+              columns: const [
+                DataColumn(label: Text('Return No')),
+                DataColumn(label: Text('Taxpayer')),
+                DataColumn(label: Text('Category')),
+                DataColumn(label: Text('Assmnt Year')),
+                DataColumn(label: Text('Gross Income')),
+                DataColumn(label: Text('Net Tax')),
+                DataColumn(label: Text('Paid')),
+                DataColumn(label: Text('Status')),
+                DataColumn(label: Text('Action')),
+              ],
+              rows: list.map((r) {
+                final statusColor = _getStatusColor(r.status);
+                final netPayable = (r.grossTax ?? 0.0) - (r.rebate ?? 0.0);
+
+                return DataRow(
+                  cells: [
+                    DataCell(
+                      Text(
+                        r.returnNo ?? 'Draft ITR',
+                        style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    DataCell(
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(r.taxpayerName ?? 'Tasrif Zaman', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          Text(r.tinNumber ?? '—', style: TextStyle(fontSize: 11, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary)),
+                        ],
+                      ),
+                    ),
+                    DataCell(Text(r.itrCategory ?? 'Individual')),
+                    DataCell(Text(r.assessmentYear)),
+                    DataCell(Text(_formatAmount(r.grossIncome))),
+                    DataCell(Text(_formatAmount(netPayable))),
+                    DataCell(Text(_formatAmount(r.taxPaid))),
+                    DataCell(
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: statusColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          r.status,
+                          style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 11),
+                        ),
+                      ),
+                    ),
+                    DataCell(
+                      Row(
+                        children: [
+                          TextButton.icon(
+                            icon: const Icon(Icons.visibility, size: 16),
+                            label: const Text('View'),
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => ItrDetailsScreen(itrId: r.id)),
+                            ),
+                            style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
+          ),
+        ),
       ),
     );
   }

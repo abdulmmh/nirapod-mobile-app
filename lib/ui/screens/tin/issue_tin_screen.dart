@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../providers/taxpayer_provider.dart';
+import '../../widgets/portal_shell.dart';
 
 class IssueTinScreen extends StatefulWidget {
   const IssueTinScreen({Key? key}) : super(key: key);
@@ -150,40 +151,30 @@ class _IssueTinScreenState extends State<IssueTinScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text('Issue TIN'),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.black,
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1100),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Header
-                  Text(
-                    'Issue TIN',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.teal.shade900,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Issue a new Taxpayer Identification Number.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+    return PortalShell(
+      breadcrumbs: const ['My Portal', 'Issue TIN'],
+      showBackButton: true,
+      body: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header
+            Text(
+              'Issue TIN',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.teal.shade900,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Issue a new Taxpayer Identification Number.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 20),
 
                   // Card: Find Taxpayer
                   _buildFormSection(
@@ -405,9 +396,6 @@ class _IssueTinScreenState extends State<IssueTinScreen> {
                 ],
               ),
             ),
-          ),
-        ),
-      ),
     );
   }
 

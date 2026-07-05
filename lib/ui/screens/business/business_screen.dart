@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../providers/portal_provider.dart';
 import '../../../data/models/portal_records.dart';
+import '../../widgets/portal_shell.dart';
 
 class BusinessScreen extends StatefulWidget {
   const BusinessScreen({Key? key}) : super(key: key);
@@ -60,7 +61,24 @@ class _BusinessScreenState extends State<BusinessScreen> {
           (b.ownerName != null && b.ownerName!.toLowerCase().contains(_searchQuery.toLowerCase())) ||
           (b.tinNumber != null && b.tinNumber!.toLowerCase().contains(_searchQuery.toLowerCase()));
 
-      final matchesStatus = _statusFilter.isEmpty || b.vatStatus.toLowerCase() == _statusFilter.toLowerCase();
+      bool matchesStatus = false;
+      if (_statusFilter.isEmpty) {
+        matchesStatus = true;
+      } else if (_statusFilter == 'Expiring Soon') {
+        if (b.expiryDate == null) {
+          matchesStatus = false;
+        } else {
+          try {
+            final expDate = DateTime.parse(b.expiryDate!);
+            matchesStatus = expDate.difference(DateTime.now()).inDays < 30 && expDate.isAfter(DateTime.now());
+          } catch (_) {
+            matchesStatus = false;
+          }
+        }
+      } else {
+        matchesStatus = b.vatStatus.toLowerCase() == _statusFilter.toLowerCase();
+      }
+
       final matchesType = _typeFilter.isEmpty || (b.businessType != null && b.businessType!.toLowerCase() == _typeFilter.toLowerCase());
       final matchesCategory = _categoryFilter.isEmpty || (b.businessCategory != null && b.businessCategory!.toLowerCase() == _categoryFilter.toLowerCase());
 
@@ -71,58 +89,129 @@ class _BusinessScreenState extends State<BusinessScreen> {
     final types = businesses.map((b) => b.businessType).whereType<String>().toSet().toList();
     final categories = businesses.map((b) => b.businessCategory).whereType<String>().toSet().toList();
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text('Business Registration'),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.black,
+    return PortalShell(
+      breadcrumbs: const ['My Portal', 'Business Registration'],
+      showBackButton: true,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.pushNamed(context, '/business-create');
+        },
+        backgroundColor: AppColors.primary,
+        child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),
       body: RefreshIndicator(
         onRefresh: () async {
           // reload data
         },
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1100),
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Title Header
-                  Text(
-                    'Business Registration',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.teal.shade900,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Manage all registered businesses and trade licenses.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Title Header
+            Text(
+              'Business Registration',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.teal.shade900,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Manage all registered businesses and trade licenses.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 20),
 
               // KPI Cards Grid (Responsive Layout)
-              GridView.count(
-                crossAxisCount: MediaQuery.of(context).size.width < 600 ? 2 : 4,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: MediaQuery.of(context).size.width < 380 ? 1.3 : 1.6,
-                children: [
-                  _buildKpiCard('Active', '$activeCount', Icons.check_circle, AppColors.success, isDark),
-                  _buildKpiCard('Pending', '$pendingCount', Icons.hourglass_empty_rounded, AppColors.warning, isDark),
-                  _buildKpiCard('Suspended', '$suspendedCount', Icons.remove_circle_outline, AppColors.error, isDark),
-                  _buildKpiCard('Expiring Soon', '$expiringCount', Icons.warning_amber_rounded, Colors.orange, isDark),
-                ],
+              Builder(
+                builder: (context) {
+                  final screenWidth = MediaQuery.of(context).size.width;
+                  final gridWidth = screenWidth.clamp(0.0, 1100.0);
+                  final int crossAxisCount = screenWidth < 600 ? 2 : 4;
+                  final double cardWidth = (gridWidth - 32 - (crossAxisCount - 1) * 12) / crossAxisCount;
+                  final double cardHeight = screenWidth < 600 ? 85 : 75;
+                  final double aspectRatio = cardWidth / cardHeight;
+
+                  return GridView.count(
+                    crossAxisCount: crossAxisCount,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: aspectRatio,
+                    children: [
+                      _buildKpiCard(
+                        'Active',
+                        '$activeCount',
+                        Icons.check_circle,
+                        AppColors.success,
+                        isDark,
+                        onTap: () {
+                          setState(() {
+                            if (_statusFilter == 'Active') {
+                              _statusFilter = '';
+                            } else {
+                              _statusFilter = 'Active';
+                            }
+                          });
+                        },
+                        isSelected: _statusFilter == 'Active',
+                      ),
+                      _buildKpiCard(
+                        'Pending',
+                        '$pendingCount',
+                        Icons.hourglass_empty_rounded,
+                        AppColors.warning,
+                        isDark,
+                        onTap: () {
+                          setState(() {
+                            if (_statusFilter == 'Pending') {
+                              _statusFilter = '';
+                            } else {
+                              _statusFilter = 'Pending';
+                            }
+                          });
+                        },
+                        isSelected: _statusFilter == 'Pending',
+                      ),
+                      _buildKpiCard(
+                        'Suspended',
+                        '$suspendedCount',
+                        Icons.remove_circle_outline,
+                        AppColors.error,
+                        isDark,
+                        onTap: () {
+                          setState(() {
+                            if (_statusFilter == 'Suspended') {
+                              _statusFilter = '';
+                            } else {
+                              _statusFilter = 'Suspended';
+                            }
+                          });
+                        },
+                        isSelected: _statusFilter == 'Suspended',
+                      ),
+                      _buildKpiCard(
+                        'Expiring Soon',
+                        '$expiringCount',
+                        Icons.warning_amber_rounded,
+                        Colors.orange,
+                        isDark,
+                        onTap: () {
+                          setState(() {
+                            if (_statusFilter == 'Expiring Soon') {
+                              _statusFilter = '';
+                            } else {
+                              _statusFilter = 'Expiring Soon';
+                            }
+                          });
+                        },
+                        isSelected: _statusFilter == 'Expiring Soon',
+                      ),
+                    ],
+                  );
+                }
               ),
               const SizedBox(height: 12),
               _buildWideKpiCard('Active Turnover', _formatCurrency(totalActiveTurnover), Icons.monetization_on, AppColors.primary, isDark),
@@ -208,56 +297,56 @@ class _BusinessScreenState extends State<BusinessScreen> {
                         return _buildBusinessCard(context, biz, isDark, theme);
                       },
                     ),
-                ],
-              ),
-            ),
-          ),
+          ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, '/business-create');
-        },
-        backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),
     );
   }
 
-  Widget _buildKpiCard(String label, String value, IconData icon, Color color, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 20),
+  Widget _buildKpiCard(String label, String value, IconData icon, Color color, bool isDark, {VoidCallback? onTap, bool isSelected = false}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? color : Colors.grey.shade200,
+            width: isSelected ? 2 : 1,
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-              ],
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
+            if (isSelected)
+              BoxShadow(color: color.withOpacity(0.1), blurRadius: 6, offset: const Offset(0, 3)),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 20),
             ),
-          ),
-        ],
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 2),
+                  Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Icon(Icons.check_circle, color: color, size: 14),
+          ],
+        ),
       ),
     );
   }
@@ -310,7 +399,7 @@ class _BusinessScreenState extends State<BusinessScreen> {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: selectedValue.isEmpty ? null : selectedValue,
+          value: (selectedValue.isEmpty || !items.contains(selectedValue)) ? null : selectedValue,
           hint: Text(hint, style: const TextStyle(fontSize: 12, color: Colors.grey)),
           isExpanded: true,
           style: const TextStyle(fontSize: 13, color: Colors.black87),

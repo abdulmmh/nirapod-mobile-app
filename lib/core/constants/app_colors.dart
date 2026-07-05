@@ -10,7 +10,7 @@ class AppColors {
   static const Color accent = Color(0xFF8B5CF6); // Purple Accent for badges/charts
 
   // Neutral Colors (Light Theme)
-  static const Color background = Color(0xFFF8FAFC); // Very light blue/gray
+  static const Color background = Color(0xFFF5F5F5); // Whitesmoke background
   static const Color surface = Colors.white;
   static const Color textPrimary = Color(0xFF0F172A); // Dark slate
   static const Color textSecondary = Color(0xFF475569); // Slate gray

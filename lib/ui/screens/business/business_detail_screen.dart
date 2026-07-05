@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/models/portal_records.dart';
+import '../../widgets/portal_shell.dart';
 
 class BusinessDetailScreen extends StatelessWidget {
   const BusinessDetailScreen({Key? key}) : super(key: key);
@@ -22,7 +23,54 @@ class BusinessDetailScreen extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     
     // Extract Business argument
-    final biz = ModalRoute.of(context)!.settings.arguments as Business;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args == null || args is! Business) {
+      return PortalShell(
+        breadcrumbs: const ['My Portal', 'Businesses', 'Business Details'],
+        showBackButton: true,
+        body: Center(
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 40),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.warning_amber_rounded, size: 48, color: Colors.orange.shade800),
+                const SizedBox(height: 16),
+                const Text(
+                  'No Business Selected',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Could not retrieve the details for this business. Please return to the list.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.black54, fontSize: 13),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pushReplacementNamed(context, '/dashboard');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text('Back to Dashboard'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    final biz = args;
 
     Color statusColor = AppColors.success;
     if (biz.vatStatus.toLowerCase() == 'pending') {
@@ -33,16 +81,10 @@ class BusinessDetailScreen extends StatelessWidget {
 
     final regNo = 'BUS-${biz.tradeLicenseNo.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').substring(0, 6).toUpperCase()}';
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text('Business Details'),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.black,
-      ),
+    return PortalShell(
+      breadcrumbs: const ['My Portal', 'Businesses', 'Business Details'],
+      showBackButton: true,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

@@ -4,6 +4,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../providers/portal_provider.dart';
 import '../../../providers/taxpayer_provider.dart';
 import '../../../data/models/portal_records.dart';
+import '../../widgets/portal_shell.dart';
 
 class BusinessCreateScreen extends StatefulWidget {
   const BusinessCreateScreen({Key? key}) : super(key: key);
@@ -15,8 +16,7 @@ class BusinessCreateScreen extends StatefulWidget {
 class _BusinessCreateScreenState extends State<BusinessCreateScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // Search variables
-  final TextEditingController _searchController = TextEditingController();
+  // Auto-filled taxpayer info
   bool _isAutoFilled = false;
   String? _autoFilledName;
   String? _autoFilledTin;
@@ -49,13 +49,12 @@ class _BusinessCreateScreenState extends State<BusinessCreateScreen> {
   @override
   void initState() {
     super.initState();
-    // Auto populate defaults if user profile already has TIN details
+    // Auto populate logged in taxpayer details
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final taxpayer = Provider.of<TaxpayerProvider>(context, listen: false).taxpayer;
-      if (taxpayer != null && taxpayer.tin != null) {
-        _searchController.text = taxpayer.tin!;
-        _triggerAutoFill(taxpayer.fullName ?? taxpayer.companyName ?? 'Tasrif Zaman', taxpayer.tin!);
-      }
+      final name = taxpayer?.fullName ?? taxpayer?.companyName ?? 'Tasrif Zaman';
+      final tin = taxpayer?.tin ?? 'TIN-000000005';
+      _triggerAutoFill(name, tin);
     });
   }
 
@@ -67,20 +66,6 @@ class _BusinessCreateScreenState extends State<BusinessCreateScreen> {
       _emailController.text = 'business@example.com';
       _phoneController.text = '01820318364';
     });
-  }
-
-  void _searchTaxpayer() {
-    final query = _searchController.text.trim();
-    if (query.isEmpty) return;
-
-    final taxpayerProv = Provider.of<TaxpayerProvider>(context, listen: false);
-    final tp = taxpayerProv.taxpayer;
-    if (tp != null && (query == tp.tin || query.toLowerCase() == (tp.fullName ?? '').toLowerCase())) {
-      _triggerAutoFill(tp.fullName ?? tp.companyName ?? 'Tasrif Zaman', tp.tin!);
-    } else {
-      // Mock lookup success for standard demo cases
-      _triggerAutoFill('Tasrif Zaman', 'TIN-000000005');
-    }
   }
 
   Future<void> _selectDate(BuildContext context, int dateType) async {
@@ -106,12 +91,6 @@ class _BusinessCreateScreenState extends State<BusinessCreateScreen> {
 
   void _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
-    if (!_isAutoFilled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please find and auto-fill taxpayer details first.'), backgroundColor: AppColors.error),
-      );
-      return;
-    }
 
     final newBiz = Business(
       id: 0,
@@ -172,118 +151,32 @@ class _BusinessCreateScreenState extends State<BusinessCreateScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text('Register Business'),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.black,
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1100),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Header
-                  Text(
-                    'Register Business',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.teal.shade900,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Register a new business entity.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+    return PortalShell(
+      breadcrumbs: const ['My Portal', 'Businesses', 'Register Business'],
+      showBackButton: true,
+      body: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header
+            Text(
+              'Register Business',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.teal.shade900,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Register a new business entity.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 20),
 
-                  // Card: Find Taxpayer
-                  _buildFormSection(
-                    title: 'Find Taxpayer',
-                    subtitle: 'Search by TIN number or name — details will auto-fill',
-                    icon: Icons.search,
-                    isDark: isDark,
-                    children: [
-                      _buildResponsiveRow(
-                        context,
-                        [
-                          Expanded(
-                            child: TextField(
-                              controller: _searchController,
-                              decoration: InputDecoration(
-                                hintText: 'Enter TIN number or taxpayer name',
-                                hintStyle: const TextStyle(fontSize: 13),
-                                filled: true,
-                                fillColor: Colors.white,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: Colors.grey.shade300),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: Colors.grey.shade300),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              ),
-                            ),
-                          ),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            onPressed: _searchTaxpayer,
-                            child: const Text('Search', style: TextStyle(fontWeight: FontWeight.bold)),
-                          ),
-                        ],
-                        spacing: 8,
-                      ),
-                      if (_isAutoFilled) ...[
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: AppColors.success.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.success.withOpacity(0.3)),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.flash_on, color: AppColors.success, size: 20),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(_autoFilledName ?? '', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 13)),
-                                    Text('TIN: $_autoFilledTin', style: const TextStyle(color: Colors.grey, fontSize: 11, fontFamily: 'monospace')),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(color: AppColors.success, borderRadius: BorderRadius.circular(4)),
-                                child: const Text('Auto-filled', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+
 
                   // Card: Business Identity
                   _buildFormSection(
@@ -514,9 +407,6 @@ class _BusinessCreateScreenState extends State<BusinessCreateScreen> {
                 ],
               ),
             ),
-          ),
-        ),
-      ),
     );
   }
 

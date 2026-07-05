@@ -40,6 +40,10 @@ class ApiEndpoints {
   static const String incomeTaxReturns = '/income-tax-returns';
   static const String itrPreview = '/income-tax-returns/preview';
 
+  // IT-10B Assets & Liabilities
+  static const String it10b = '/it10b';
+  static String it10bByReturn(int returnId) => '/it10b/by-return/$returnId';
+
   // AIT
   static const String aitRecords = '/ait-records';
   static String aitDocuments(int aitId) => '/ait-records/$aitId/documents';

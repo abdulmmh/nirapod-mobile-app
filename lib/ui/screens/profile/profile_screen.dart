@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../providers/taxpayer_provider.dart';
+import '../../widgets/portal_shell.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -32,51 +33,52 @@ class ProfileScreen extends StatelessWidget {
 
     final hasTin = taxpayer.tin != null && taxpayer.tin!.isNotEmpty;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text('TIN & Profile Details'),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.black,
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1100),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Screen Header Title & Subtitle
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return PortalShell(
+      breadcrumbs: const ['My Portal', 'Profile'],
+      showBackButton: true,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Screen Header Title & Subtitle
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'TIN Details',
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.teal.shade900,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Full TIN record information.',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
+                    Text(
+                      'TIN Details',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.teal.shade900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Full TIN record information.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.grey.shade600,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                onPressed: () => Navigator.pushNamed(context, '/profile-edit'),
+                icon: const Icon(Icons.edit, size: 16),
+                label: const Text('Edit Profile', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
 
                 if (!hasTin) ...[
                   // Fallback block if taxpayer does not have a TIN
@@ -288,10 +290,7 @@ class ProfileScreen extends StatelessWidget {
                 ],
               ],
             ),
-          ),
-        ),
-      ),
-    );
+      );
   }
 
   Widget _buildCardPill(String text, Color bgColor, {Color textColor = Colors.white}) {

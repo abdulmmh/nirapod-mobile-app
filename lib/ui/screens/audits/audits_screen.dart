@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../providers/portal_provider.dart';
+import '../../widgets/portal_shell.dart';
 
 class AuditsScreen extends StatelessWidget {
   const AuditsScreen({Key? key}) : super(key: key);
@@ -17,12 +18,14 @@ class AuditsScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final portalProv = Provider.of<PortalProvider>(context);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('My Audits & Queries')),
+    return PortalShell(
+      breadcrumbs: const ['My Portal', 'Audits'],
+      showBackButton: true,
       body: portalProv.audits.isEmpty
           ? const Center(child: Text('No active audit investigations found.'))
           : ListView.builder(
-              padding: const EdgeInsets.all(16),
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
               itemCount: portalProv.audits.length,
               itemBuilder: (context, index) {
                 final audit = portalProv.audits[index];

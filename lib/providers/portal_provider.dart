@@ -12,8 +12,10 @@ class PortalProvider extends ChangeNotifier {
   List<Payment> _payments = [];
   List<Audit> _audits = [];
   List<Appeal> _appeals = [];
+  List<OutstandingItem> _outstandingItems = [];
 
   bool _isLoading = false;
+  bool _isLoadingOutstanding = false;
   String? _errorMessage;
 
   List<ItrRecord> get itrs => _itrs;
@@ -23,8 +25,10 @@ class PortalProvider extends ChangeNotifier {
   List<Payment> get payments => _payments;
   List<Audit> get audits => _audits;
   List<Appeal> get appeals => _appeals;
+  List<OutstandingItem> get outstandingItems => _outstandingItems;
 
   bool get isLoading => _isLoading;
+  bool get isLoadingOutstanding => _isLoadingOutstanding;
   String? get errorMessage => _errorMessage;
 
   // Initialize and load all modules for a taxpayer
@@ -128,17 +132,39 @@ class PortalProvider extends ChangeNotifier {
     } catch (_) {
       // Offline fallback
       final mockNew = ItrRecord(
-        id: _itrs.length + 1,
+        id: _itrs.length + 103,
         taxpayerId: itr.taxpayerId,
+        returnNo: itr.returnNo ?? 'ITR-2025-26-${_itrs.length + 1}A',
+        tinNumber: itr.tinNumber ?? 'TIN-000000005',
+        taxpayerName: itr.taxpayerName ?? 'Tasrif Zaman',
+        itrCategory: itr.itrCategory ?? 'Individual',
         assessmentYear: itr.assessmentYear,
+        incomeYear: itr.incomeYear ?? '2024-2025',
+        returnPeriod: itr.returnPeriod ?? 'Annual',
+        grossIncome: itr.grossIncome ?? 0,
+        exemptIncome: itr.exemptIncome ?? 0,
         grossTax: itr.grossTax,
         rebate: itr.rebate,
-        netTaxPayable: itr.netTaxPayable,
+        taxRebate: itr.taxRebate,
         advanceTaxPaid: itr.advanceTaxPaid,
         withholdingTax: itr.withholdingTax,
         taxPaid: itr.taxPaid,
         status: 'Submitted',
         submissionDate: DateTime.now().toIso8601String().substring(0, 10),
+        dueDate: itr.dueDate ?? '2025-11-30',
+        submittedBy: itr.submittedBy ?? 'Tasrif Zaman',
+        actionHistory: [
+          ItrAction(
+            action: 'Submit',
+            fromStatus: 'Draft',
+            toStatus: 'Submitted',
+            status: 'Submitted',
+            performedBy: 'Tasrif Zaman',
+            role: 'TAXPAYER',
+            performedAt: DateTime.now().toIso8601String().substring(0, 10),
+            remarks: 'Submitted via mobile app',
+          )
+        ],
       );
       _itrs.insert(0, mockNew);
     }
@@ -146,6 +172,228 @@ class PortalProvider extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
     return true;
+  }
+
+  // Preview ITR calculations
+  Future<Map<String, dynamic>?> previewItr(ItrRecord itr) async {
+    try {
+      final response = await apiClient.post(ApiEndpoints.itrPreview, data: itr.toJson());
+      if (response.data != null) {
+        return Map<String, dynamic>.from(response.data);
+      }
+    } catch (e) {
+      // Offline tax calculation logic
+      final gross = itr.grossIncome ?? 0.0;
+      final exempt = itr.exemptIncome ?? 0.0;
+      final taxable = MathMax(0.0, gross - exempt);
+      // Simulate simple progressive tax slabs
+      double calculatedTax = 0.0;
+      if (taxable > 350000) {
+        double remaining = taxable - 350000;
+        if (remaining > 100000) {
+          calculatedTax += 100000 * 0.05;
+          remaining -= 100000;
+          if (remaining > 300000) {
+            calculatedTax += 300000 * 0.10;
+            remaining -= 300000;
+            calculatedTax += remaining * 0.15;
+          } else {
+            calculatedTax += remaining * 0.10;
+          }
+        } else {
+          calculatedTax += remaining * 0.05;
+        }
+      }
+      return {
+        "taxableIncome": taxable,
+        "effectiveRatePct": calculatedTax > 0 ? (calculatedTax / taxable) * 100 : 0.0,
+        "grossTax": calculatedTax,
+      };
+    }
+    return null;
+  }
+
+  double MathMax(double a, double b) => a > b ? a : b;
+
+  // Get IT-10B statement by return ID
+  Future<IT10BRecord?> getIt10bByReturnId(int returnId) async {
+    try {
+      final response = await apiClient.get(ApiEndpoints.it10bByReturn(returnId));
+      if (response.data != null) {
+        return IT10BRecord.fromJson(response.data);
+      }
+    } catch (_) {
+      // Offline fallback mock statement
+      if (returnId == 101 || returnId == 102) {
+        return IT10BRecord(
+          id: returnId - 100,
+          returnId: returnId,
+          nonAgriculturalProperty: 2000000.0,
+          agriculturalProperty: 500000.0,
+          investments: 300000.0,
+          motorVehicles: 800000.0,
+          bankBalances: 400000.0,
+          personalLiabilities: 1000000.0,
+          netWealth: 3000000.0,
+        );
+      }
+    }
+    return null;
+  }
+
+  // Save or update IT-10B statement
+  Future<IT10BRecord?> saveIt10b(IT10BRecord it10b) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      Response response;
+      if (it10b.id != null && it10b.id! > 0) {
+        response = await apiClient.put('${ApiEndpoints.it10b}/${it10b.id}', data: it10b.toJson());
+      } else {
+        response = await apiClient.post(ApiEndpoints.it10b, data: it10b.toJson());
+      }
+      if (response.data != null) {
+        _isLoading = false;
+        notifyListeners();
+        return IT10BRecord.fromJson(response.data);
+      }
+    } catch (_) {
+      _isLoading = false;
+      notifyListeners();
+      return it10b; // mock success for offline
+    }
+    _isLoading = false;
+    notifyListeners();
+    return null;
+  }
+
+  // Update ITR return fields
+  Future<ItrRecord?> updateItr(int id, ItrRecord itr) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await apiClient.put('${ApiEndpoints.incomeTaxReturns}/$id', data: itr.toJson());
+      if (response.data != null) {
+        final updated = ItrRecord.fromJson(response.data);
+        final index = _itrs.indexWhere((element) => element.id == id);
+        if (index != -1) {
+          _itrs[index] = updated;
+        }
+        _isLoading = false;
+        notifyListeners();
+        return updated;
+      }
+    } catch (_) {
+      // offline fallback
+      final index = _itrs.indexWhere((element) => element.id == id);
+      if (index != -1) {
+        _itrs[index] = itr;
+      }
+      _isLoading = false;
+      notifyListeners();
+      return itr;
+    }
+    _isLoading = false;
+    notifyListeners();
+    return null;
+  }
+
+  // Patch status transition
+  Future<ItrRecord?> patchItrStatus(int id, String status, String remarks, String action) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await apiClient.dio.patch('${ApiEndpoints.incomeTaxReturns}/$id/status', data: {
+        'status': status,
+        'remarks': remarks,
+        'action': action,
+      });
+      if (response.data != null) {
+        final updated = ItrRecord.fromJson(response.data);
+        final index = _itrs.indexWhere((element) => element.id == id);
+        if (index != -1) {
+          _itrs[index] = updated;
+        }
+        _isLoading = false;
+        notifyListeners();
+        return updated;
+      }
+    } catch (_) {
+      // offline simulation
+      final index = _itrs.indexWhere((element) => element.id == id);
+      if (index != -1) {
+        final existing = _itrs[index];
+        final updatedHistory = List<ItrAction>.from(existing.actionHistory ?? []);
+        updatedHistory.add(ItrAction(
+          action: action,
+          fromStatus: existing.status,
+          toStatus: status,
+          status: status,
+          performedBy: 'Tasrif Zaman',
+          role: 'TAXPAYER',
+          performedAt: DateTime.now().toIso8601String().substring(0, 10),
+          remarks: remarks,
+        ));
+        final updated = ItrRecord(
+          id: existing.id,
+          taxpayerId: existing.taxpayerId,
+          returnNo: existing.returnNo,
+          tinNumber: existing.tinNumber,
+          userId: existing.userId,
+          taxpayerName: existing.taxpayerName,
+          itrCategory: existing.itrCategory,
+          companySubType: existing.companySubType,
+          assessmentYear: existing.assessmentYear,
+          incomeYear: existing.incomeYear,
+          returnPeriod: existing.returnPeriod,
+          grossIncome: existing.grossIncome,
+          exemptIncome: existing.exemptIncome,
+          rebate: existing.rebate,
+          taxRebate: existing.taxRebate,
+          advanceTaxPaid: existing.advanceTaxPaid,
+          withholdingTax: existing.withholdingTax,
+          taxPaid: existing.taxPaid,
+          taxRate: existing.taxRate,
+          grossTax: existing.grossTax,
+          status: status,
+          submissionDate: existing.submissionDate,
+          dueDate: existing.dueDate,
+          submittedBy: existing.submittedBy,
+          remarks: remarks,
+          actionHistory: updatedHistory,
+        );
+        _itrs[index] = updated;
+        _isLoading = false;
+        notifyListeners();
+        return updated;
+      }
+    }
+    _isLoading = false;
+    notifyListeners();
+    return null;
+  }
+
+  // Delete ITR return
+  Future<bool> deleteItr(int id) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await apiClient.delete('${ApiEndpoints.incomeTaxReturns}/$id');
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        _itrs.removeWhere((element) => element.id == id);
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+    } catch (_) {
+      _itrs.removeWhere((element) => element.id == id);
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    }
+    _isLoading = false;
+    notifyListeners();
+    return false;
   }
 
   // Create Business
@@ -222,13 +470,52 @@ class PortalProvider extends ChangeNotifier {
     return true;
   }
 
+  // Submit draft AIT record
+  Future<bool> submitAit(int id, String challanNo) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final response = await apiClient.post(ApiEndpoints.aitSubmit(id), data: {
+        'challanNo': challanNo,
+      });
+      if (response.data != null) {
+        final idx = _aits.indexWhere((element) => element.id == id);
+        if (idx != -1) {
+          _aits[idx] = AitRecord.fromJson(response.data);
+        }
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+    } catch (_) {
+      final idx = _aits.indexWhere((element) => element.id == id);
+      if (idx != -1) {
+        final old = _aits[idx];
+        _aits[idx] = AitRecord(
+          id: old.id,
+          taxpayerId: old.taxpayerId,
+          amount: old.amount,
+          source: old.source,
+          challanNo: challanNo,
+          date: old.date,
+          status: 'Submitted',
+        );
+      }
+    }
+
+    _isLoading = false;
+    notifyListeners();
+    return true;
+  }
+
   // Reply/respond to notice
   Future<bool> replyNotice(int noticeId, String replyMsg) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final response = await apiClient.post(ApiEndpoints.noticeRespond(noticeId), data: {'replyMessage': replyMsg});
+      final response = await apiClient.patch(ApiEndpoints.noticeRespond(noticeId), data: {'responseNote': replyMsg});
       if (response.statusCode == 200) {
         final idx = _notices.indexWhere((n) => n.id == noticeId);
         if (idx != -1) {
@@ -236,11 +523,13 @@ class PortalProvider extends ChangeNotifier {
             id: noticeId,
             title: _notices[idx].title,
             message: _notices[idx].message,
-            status: 'Replied',
+            status: 'Responded',
             date: _notices[idx].date,
             noticeType: _notices[idx].noticeType,
             replyMessage: replyMsg,
             replyDate: DateTime.now().toIso8601String().substring(0, 10),
+            noticeNo: _notices[idx].noticeNo,
+            priority: _notices[idx].priority,
           );
         }
         _isLoading = false;
@@ -254,11 +543,13 @@ class PortalProvider extends ChangeNotifier {
           id: noticeId,
           title: _notices[idx].title,
           message: _notices[idx].message,
-          status: 'Replied',
+          status: 'Responded',
           date: _notices[idx].date,
           noticeType: _notices[idx].noticeType,
           replyMessage: replyMsg,
           replyDate: DateTime.now().toIso8601String().substring(0, 10),
+          noticeNo: _notices[idx].noticeNo,
+          priority: _notices[idx].priority,
         );
       }
     }
@@ -298,6 +589,64 @@ class PortalProvider extends ChangeNotifier {
     return true;
   }
 
+  // Fetch outstanding items
+  Future<void> loadOutstandingItems(int taxpayerId) async {
+    _isLoadingOutstanding = true;
+    _outstandingItems = [];
+    notifyListeners();
+
+    try {
+      final r = await apiClient.get(ApiEndpoints.outstandingPayments(taxpayerId));
+      if (r.data != null) {
+        _outstandingItems = (r.data as List).map((x) => OutstandingItem.fromJson(x)).toList();
+      }
+    } catch (e) {
+      print('Failed to load outstanding items, using offline fallback: $e');
+      _outstandingItems = _getMockOutstandingItems(taxpayerId);
+    }
+
+    _isLoadingOutstanding = false;
+    notifyListeners();
+  }
+
+  List<OutstandingItem> _getMockOutstandingItems(int taxpayerId) {
+    return [
+      OutstandingItem(
+        type: 'VAT',
+        returnNo: 'VAT-2026-06-0001',
+        label: 'VAT Return — June 2026',
+        totalDue: 15000.0,
+        alreadyPaid: 0.0,
+        outstanding: 15000.0,
+        dueDate: '2026-06-15',
+        status: 'Submitted',
+        overdue: true,
+      ),
+      OutstandingItem(
+        type: 'Income Tax',
+        returnNo: 'ITR-2025-26-5E1D4ACB',
+        label: 'Income Tax Return — AY 2025-2026',
+        totalDue: 55000.0,
+        alreadyPaid: 20000.0,
+        outstanding: 35000.0,
+        dueDate: '2026-11-30',
+        status: 'Submitted',
+        overdue: false,
+      ),
+      OutstandingItem(
+        type: 'Penalty',
+        returnNo: 'PN-2026-092',
+        label: 'Late Filing Penalty — PN-2026-092',
+        totalDue: 5000.0,
+        alreadyPaid: 0.0,
+        outstanding: 5000.0,
+        dueDate: '2026-06-20',
+        status: 'Unpaid',
+        overdue: true,
+      ),
+    ];
+  }
+
   // Create appeal
   Future<bool> createAppeal(Appeal appeal) async {
     _isLoading = true;
@@ -335,28 +684,105 @@ class PortalProvider extends ChangeNotifier {
       ItrRecord(
         id: 101,
         taxpayerId: tpId,
+        returnNo: 'ITR-2025-26-5E1D4ACB',
+        tinNumber: 'TIN-000000005',
+        userId: 1,
+        taxpayerName: 'Tasrif Zaman',
+        itrCategory: 'Individual',
         assessmentYear: '2025-2026',
-        grossTax: 45000.0,
-        rebate: 5000.0,
-        netTaxPayable: 40000.0,
+        incomeYear: '2024-2025',
+        returnPeriod: 'Annual',
+        grossIncome: 1200000.0,
+        exemptIncome: 200000.0,
+        rebate: 15000.0,
+        taxRebate: 15000.0,
         advanceTaxPaid: 15000.0,
         withholdingTax: 5000.0,
         taxPaid: 20000.0,
+        taxRate: 10.0,
+        grossTax: 55000.0,
         status: 'Accepted',
         submissionDate: '2025-11-15',
+        dueDate: '2025-11-30',
+        submittedBy: 'Tasrif Zaman',
+        remarks: 'Tax Return filed online',
+        actionHistory: [
+          ItrAction(
+            action: 'Submit',
+            fromStatus: 'Draft',
+            toStatus: 'Submitted',
+            status: 'Submitted',
+            performedBy: 'Tasrif Zaman',
+            role: 'TAXPAYER',
+            performedAt: '2025-11-15 10:30 AM',
+            remarks: 'Filing completed',
+          ),
+          ItrAction(
+            action: 'Start Review',
+            fromStatus: 'Submitted',
+            toStatus: 'Under Review',
+            status: 'Under Review',
+            performedBy: 'Mr. Selim',
+            role: 'TAX_OFFICER',
+            performedAt: '2025-11-16 02:15 PM',
+          ),
+          ItrAction(
+            action: 'Accept',
+            fromStatus: 'Under Review',
+            toStatus: 'Accepted',
+            status: 'Accepted',
+            performedBy: 'Commissioner Rahman',
+            role: 'TAX_COMMISSIONER',
+            performedAt: '2025-11-18 11:00 AM',
+            remarks: 'All documents verified and accepted',
+          )
+        ],
       ),
       ItrRecord(
         id: 102,
         taxpayerId: tpId,
+        returnNo: 'ITR-2024-25-A3DF928C',
+        tinNumber: 'TIN-000000005',
+        userId: 1,
+        taxpayerName: 'Tasrif Zaman',
+        itrCategory: 'Individual',
         assessmentYear: '2024-2025',
-        grossTax: 32000.0,
-        rebate: 3000.0,
-        netTaxPayable: 29000.0,
+        incomeYear: '2023-2024',
+        returnPeriod: 'Annual',
+        grossIncome: 1000000.0,
+        exemptIncome: 150000.0,
+        rebate: 12000.0,
+        taxRebate: 12000.0,
         advanceTaxPaid: 10000.0,
         withholdingTax: 4000.0,
         taxPaid: 15000.0,
+        taxRate: 9.5,
+        grossTax: 41000.0,
         status: 'Accepted',
         submissionDate: '2024-11-20',
+        dueDate: '2024-11-30',
+        submittedBy: 'Tasrif Zaman',
+        remarks: 'Previous year tax returns',
+        actionHistory: [
+          ItrAction(
+            action: 'Submit',
+            fromStatus: 'Draft',
+            toStatus: 'Submitted',
+            status: 'Submitted',
+            performedBy: 'Tasrif Zaman',
+            role: 'TAXPAYER',
+            performedAt: '2024-11-20 11:15 AM',
+          ),
+          ItrAction(
+            action: 'Accept',
+            fromStatus: 'Submitted',
+            toStatus: 'Accepted',
+            status: 'Accepted',
+            performedBy: 'Tax Officer Amin',
+            role: 'TAX_OFFICER',
+            performedAt: '2024-11-25 04:00 PM',
+          )
+        ],
       ),
     ];
   }
@@ -435,19 +861,75 @@ class PortalProvider extends ChangeNotifier {
     return [
       Notice(
         id: 401,
-        title: 'Tax Assessment Notice - FY 2024-25',
-        message: 'Your Income Tax Return for assessment year 2024-2025 has been processed. A discrepancy of BDT 5,000 has been observed. Please upload copies of your investment proof or reply to this notice within 15 days.',
+        noticeNo: 'NTC-7F21C92D',
+        title: 'Action Required: Upload Documents — AIT-202526-DF51CDEB',
+        message: 'Your AIT record AIT-202526-DF51CDEB has been created. Please upload the required supporting documents before submitting. Submission is not allowed unless at least one document has been uploaded.',
         status: 'Unread',
-        date: '2026-06-25',
-        noticeType: 'Discrepancy',
+        date: '2026-06-23',
+        noticeType: 'Specific Taxpayer',
+        priority: 'High',
       ),
       Notice(
         id: 402,
-        title: 'TIN Certificate Verification Successful',
-        message: 'Your TIN certificate details have been verified successfully. No outstanding action is required from your end.',
+        noticeNo: 'NTC-283CF8F3',
+        title: 'Payment Received — TXN-DB6ED4F9E9FD',
+        message: 'Your Income Tax payment of ৳57,500 (TXN: TXN-DB6ED4F9E9FD) has been received and is awaiting officer review. Status: Pending Officer Remarks: Paid For queries, contact NBR Helpdesk: 16579',
+        status: 'Unread',
+        date: '2026-06-23',
+        noticeType: 'Specific Taxpayer',
+        priority: 'Normal',
+      ),
+      Notice(
+        id: 403,
+        noticeNo: 'NTC-D82CBB12',
+        title: 'AIT Approved ✓ — AIT-202526-BB07CE18',
+        message: 'Your AIT record AIT-202526-BB07CE18 has been approved. Please wait for credit posting.',
+        status: 'Responded',
+        date: '2026-06-15',
+        noticeType: 'Specific Taxpayer',
+        priority: 'High',
+        replyMessage: 'Response submitted: Document uploads completed.',
+        replyDate: '2026-06-16',
+      ),
+      Notice(
+        id: 404,
+        noticeNo: 'NTC-DA775CA7',
+        title: 'Action Required: Upload Documents — AIT-202526-497333FD',
+        message: 'Your AIT record AIT-202526-497333FD has been created. Please upload the required supporting documents before submitting. Submission is not allowed unless at least one document has been uploaded.',
+        status: 'Unread',
+        date: '2026-06-23',
+        noticeType: 'Specific Taxpayer',
+        priority: 'High',
+      ),
+      Notice(
+        id: 405,
+        noticeNo: 'NTC-219A4C0B',
+        title: 'Action Required: Upload Documents — AIT-202526-EDED5D65',
+        message: 'Your AIT record AIT-202526-EDED5D65 has been created. Please upload the required supporting documents before submitting. Submission is not allowed unless at least one document has been uploaded.',
+        status: 'Unread',
+        date: '2026-06-23',
+        noticeType: 'Specific Taxpayer',
+        priority: 'High',
+      ),
+      Notice(
+        id: 406,
+        noticeNo: 'NTC-8F12A7B5',
+        title: 'System Update — Secure Login Features Active',
+        message: 'National Board of Revenue portal has updated its login protocols. Dual-factor authentication is now active for all individual taxpayer classes.',
         status: 'Read',
-        date: '2026-04-01',
+        date: '2026-05-10',
         noticeType: 'System',
+        priority: 'Normal',
+      ),
+      Notice(
+        id: 407,
+        noticeNo: 'NTC-9C12E5F2',
+        title: 'Discrepancy Clarification — FY 2024-25 Return',
+        message: 'Discrepancies were noted in your declared investment rebate documents. Please upload copy of DPS certificate to resolve this issue within 7 days.',
+        status: 'Unread',
+        date: '2026-06-24',
+        noticeType: 'Discrepancy',
+        priority: 'Normal',
       ),
     ];
   }
@@ -479,20 +961,322 @@ class PortalProvider extends ChangeNotifier {
         id: 601,
         taxpayerId: tpId,
         year: '2024-2025',
-        status: 'Closed',
-        description: 'Audit completed successfully. Tax liability verified. Standard compliance met.',
+        status: 'DOCUMENT_REQUESTED',
+        description: 'Discrepancy found in Bank credits vs declared earnings.',
         demandAmount: 0.0,
+        caseNo: 'AUD-2026-8A3B2C1D',
+        auditType: 'DESK',
+        taxType: 'INCOME_TAX',
+        fiscalYear: '2024-2025',
+        taxPeriodStart: '2024-07-01',
+        taxPeriodEnd: '2025-06-30',
+        triggerReason: 'RISK_BASED',
+        riskScore: 78,
+        priority: 'HIGH',
+        assignedOfficerName: 'Assraful Islam',
+        supervisorName: 'Zamil Hossain',
+        dueDate: '2026-08-15',
+        createdAt: '2026-06-10',
+        queryCount: 1,
+        openQueryCount: 1,
+        documentRequestCount: 1,
+      ),
+      Audit(
+        id: 602,
+        taxpayerId: tpId,
+        year: '2025-2026',
+        status: 'DEMAND_ISSUED',
+        description: 'Mismatched investment rebate document calculations.',
+        demandAmount: 3720400.00,
+        caseNo: 'AUD-2026-9F8E7D6C',
+        auditType: 'COMPREHENSIVE',
+        taxType: 'INCOME_TAX',
+        fiscalYear: '2025-2026',
+        taxPeriodStart: '2025-07-01',
+        taxPeriodEnd: '2026-06-30',
+        triggerReason: 'MISMATCH',
+        riskScore: 92,
+        priority: 'CRITICAL',
+        assignedOfficerName: 'Mahbubur Rahman',
+        supervisorName: 'Zamil Hossain',
+        dueDate: '2026-07-25',
+        createdAt: '2026-05-15',
+        queryCount: 1,
+        openQueryCount: 0,
+        hasAssessment: true,
+        hasDemandNotice: true,
       ),
     ];
+  }
+
+  // Audit details helpers
+  final Map<int, List<AuditQuery>> _queriesCache = {};
+  final Map<int, List<AuditDocumentRequest>> _docsCache = {};
+
+  Future<List<AuditQuery>> getQueries(int caseId) async {
+    if (_queriesCache.containsKey(caseId)) {
+      return _queriesCache[caseId]!;
+    }
+    try {
+      final r = await apiClient.get('/my-portal/audits/$caseId/queries');
+      if (r.data != null) {
+        final list = (r.data as List).map((x) => AuditQuery.fromJson(x)).toList();
+        _queriesCache[caseId] = list;
+        return list;
+      }
+    } catch (_) {}
+
+    // Fallback to mocks
+    List<AuditQuery> mocks = [];
+    if (caseId == 601) {
+      mocks = [
+        AuditQuery(
+          id: 901,
+          auditCaseId: 601,
+          queryNo: 'QRY-2026-001',
+          subject: 'Discrepancy in Bank Credits',
+          queryText: 'We noticed bank transactions of BDT 1,200,000 on Nov 12, 2024, which were not declared in your return. Please explain and provide bank statement.',
+          queryType: 'Income Verification',
+          raisedBy: 'Assraful Islam',
+          raisedAt: '2026-06-12',
+          deadline: '2026-07-20',
+          status: 'OPEN',
+        ),
+      ];
+    } else if (caseId == 602) {
+      mocks = [
+        AuditQuery(
+          id: 902,
+          auditCaseId: 602,
+          queryNo: 'QRY-2026-002',
+          subject: 'Form-16 Verification',
+          queryText: 'Provide copy of Form-16 from employer for verification of tax deducted at source.',
+          queryType: 'TDS Verification',
+          raisedBy: 'Mahbubur Rahman',
+          raisedAt: '2026-05-18',
+          deadline: '2026-06-15',
+          status: 'RESPONDED',
+          responseText: 'Attached Form-16 as requested. Income is fully declared.',
+          respondedBy: 'Mahadi',
+          respondedAt: '2026-06-01',
+        ),
+      ];
+    }
+    _queriesCache[caseId] = mocks;
+    return mocks;
+  }
+
+  Future<List<AuditDocumentRequest>> getDocumentRequests(int caseId) async {
+    if (_docsCache.containsKey(caseId)) {
+      return _docsCache[caseId]!;
+    }
+    try {
+      final r = await apiClient.get('/my-portal/audits/$caseId/document-requests');
+      if (r.data != null) {
+        final list = (r.data as List).map((x) => AuditDocumentRequest.fromJson(x)).toList();
+        _docsCache[caseId] = list;
+        return list;
+      }
+    } catch (_) {}
+
+    // Fallback to mocks
+    List<AuditDocumentRequest> mocks = [];
+    if (caseId == 601) {
+      mocks = [
+        AuditDocumentRequest(
+          id: 801,
+          auditCaseId: 601,
+          requestNo: 'REQ-2026-001',
+          requestedDocuments: 'Bank Statements for FY 2024-25',
+          requestReason: 'To verify credit entries and declared income',
+          requestType: 'Bank Records',
+          requestedBy: 'Assraful Islam',
+          requestedAt: '2026-06-12',
+          deadline: '2026-07-20',
+          status: 'PENDING',
+        ),
+      ];
+    }
+    _docsCache[caseId] = mocks;
+    return mocks;
+  }
+
+  Future<Assessment?> getMyAssessment(int caseId) async {
+    try {
+      final r = await apiClient.get('/my-portal/audits/$caseId/assessment');
+      if (r.data != null) {
+        return Assessment.fromJson(r.data);
+      }
+    } catch (_) {}
+
+    if (caseId == 602) {
+      return Assessment(
+        id: 702,
+        auditCaseId: 602,
+        caseNo: 'AUD-2026-9F8E7D6C',
+        assessmentNo: 'ASM-2026-88711A',
+        taxpayerId: 1,
+        tinNumber: '539820193829',
+        taxpayerName: 'Mahadi Hasan',
+        fiscalYear: '2025-2026',
+        taxType: 'INCOME_TAX',
+        declaredIncome: 5000000.00,
+        assessedIncome: 5050000.00,
+        declaredTax: 150000.00,
+        assessedTax: 165000.00,
+        additionalTax: 15000.00,
+        penaltyRate: 10.0,
+        penaltyAmount: 1500.00,
+        interestRate: 1.0,
+        interestMonths: 6,
+        interestAmount: 900.00,
+        totalDemand: 3720400.00,
+        amountPaid: 0.0,
+        balanceDue: 3720400.00,
+        findingsSummary: 'Salary receipts and family transfers verified. Discrepancy found in taxable credits.',
+        legalBasis: 'Section 16(2) of Income Tax Ordinance 1984',
+        appealRights: 'You can file a legal appeal within 45 days of receipt of this notice.',
+        paymentDeadline: '2026-07-25',
+        status: 'APPROVED',
+        approvedBy: 'Zamil Hossain',
+        approvedAt: '2026-06-16',
+        hasDemandNotice: true,
+        demandNo: 'DEM-2026-1395958B',
+      );
+    }
+    return null;
+  }
+
+  Future<DemandNotice?> getMyDemandNotice(int caseId) async {
+    try {
+      final r = await apiClient.get('/my-portal/audits/$caseId/demand');
+      if (r.data != null) {
+        return DemandNotice.fromJson(r.data);
+      }
+    } catch (_) {}
+
+    if (caseId == 602) {
+      return DemandNotice(
+        id: 505,
+        demandNo: 'DEM-2026-1395958B',
+        assessmentId: 702,
+        assessmentNo: 'ASM-2026-88711A',
+        auditCaseId: 602,
+        taxpayerId: 1,
+        tinNumber: '539820193829',
+        taxpayerName: 'Mahadi Hasan',
+        amountDue: 3720400.00,
+        dueDate: '2026-07-25',
+        paymentInstructions: 'Please pay the outstanding demand via Sonali Bank e-Payment portal or NBR mobile banking gateways.',
+        issuedBy: 'Zamil Hossain',
+        issuedAt: '2026-06-16',
+        status: 'ISSUED',
+      );
+    }
+    return null;
+  }
+
+  Future<bool> respondToQuery(int caseId, int queryId, String text) async {
+    try {
+      await apiClient.post('/my-portal/audits/$caseId/respond', data: {
+        'queryId': queryId,
+        'responseText': text,
+      });
+    } catch (_) {}
+
+    // Update locally in mock cache
+    if (_queriesCache.containsKey(caseId)) {
+      final list = _queriesCache[caseId]!;
+      final idx = list.indexWhere((q) => q.id == queryId);
+      if (idx != -1) {
+        final old = list[idx];
+        list[idx] = AuditQuery(
+          id: old.id,
+          auditCaseId: old.auditCaseId,
+          queryNo: old.queryNo,
+          subject: old.subject,
+          queryText: old.queryText,
+          queryType: old.queryType,
+          raisedBy: old.raisedBy,
+          raisedAt: old.raisedAt,
+          status: 'RESPONDED',
+          responseText: text,
+          respondedBy: 'Self',
+          respondedAt: DateTime.now().toIso8601String().split('T').first,
+        );
+      }
+    }
+    notifyListeners();
+    return true;
+  }
+
+  Future<bool> uploadDocumentForRequest(int caseId, int requestId, String notes) async {
+    try {
+      await apiClient.post('/my-portal/audits/$caseId/respond', data: {
+        'documentRequestId': requestId,
+        'fulfillmentNotes': notes,
+      });
+    } catch (_) {}
+
+    // Update locally in mock cache
+    if (_docsCache.containsKey(caseId)) {
+      final list = _docsCache[caseId]!;
+      final idx = list.indexWhere((d) => d.id == requestId);
+      if (idx != -1) {
+        final old = list[idx];
+        list[idx] = AuditDocumentRequest(
+          id: old.id,
+          auditCaseId: old.auditCaseId,
+          requestNo: old.requestNo,
+          requestedDocuments: old.requestedDocuments,
+          requestReason: old.requestReason,
+          requestType: old.requestType,
+          requestedBy: old.requestedBy,
+          requestedAt: old.requestedAt,
+          status: 'FULFILLED',
+          fulfillmentNotes: notes,
+        );
+      }
+    }
+    notifyListeners();
+    return true;
   }
 
   List<Appeal> _getMockAppeals(int tpId) {
     return [
       Appeal(
+        id: 1,
+        taxpayerId: tpId,
+        appealNo: 'APPEAL-2026-65722DAE',
+        caseNo: 'APPEAL-2026-65722DAE',
+        status: 'CLOSED',
+        demandedAmount: 3720400.00,
+        disputedAmount: 50000.00,
+        reliefGranted: 25000.00,
+        acceptedAmount: 25000.00,
+        filedAt: '2026-06-16',
+        deadline: '2026-07-31',
+        groundsText: 'The assessment has included salary receipts as income which are already taxed at source. The declared income of BDT 5,000,000 is correct as per Form-16. Bank credits include family transfers which are not taxable under ITO 1984 Section 16(2). I request full cancellation of the demand.',
+        description: 'The assessment has included salary receipts as income which are already taxed at source. The declared income of BDT 5,000,000 is correct as per Form-16. Bank credits include family transfers which are not taxable under ITO 1984 Section 16(2). I request full cancellation of the demand.',
+        reliefSought: 'Full cancellation of demand notice DEM-2026-1395958B',
+        decision: 'PARTIALLY UPHELD',
+        decidedBy: 'Tax Commissioner',
+        decidedAt: '2026-06-16',
+        demandNo: 'DEM-2026-1395958B',
+      ),
+      Appeal(
         id: 701,
         taxpayerId: tpId,
+        appealNo: 'APP/2026/089',
         caseNo: 'APP/2026/089',
         status: 'Hearing Scheduled',
+        demandedAmount: 100000.00,
+        disputedAmount: 100000.00,
+        reliefGranted: 0.0,
+        acceptedAmount: 0.0,
+        filedAt: '2026-05-12',
+        deadline: '2026-08-30',
+        groundsText: 'Appeal against penalty issued for delay in filing income tax return. Ground: Taxpayer was hospitalized during filing period.',
         description: 'Appeal against penalty issued for delay in filing income tax return. Ground: Taxpayer was hospitalized during filing period.',
         hearingDate: '2026-07-20 11:30 AM',
       ),
