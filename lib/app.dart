@@ -18,8 +18,11 @@ import 'ui/screens/payments/payment_detail_screen.dart';
 import 'ui/screens/notices/notices_screen.dart';
 import 'ui/screens/notices/notice_detail_screen.dart';
 import 'ui/screens/audits/audits_screen.dart';
+import 'ui/screens/audits/audit_detail_screen.dart';
 import 'ui/screens/appeals/appeals_screen.dart';
 import 'ui/screens/appeals/appeal_detail_screen.dart';
+import 'ui/screens/vat/vat_registrations_screen.dart';
+import 'ui/screens/vat/vat_returns_screen.dart';
 
 class NirapodApp extends StatelessWidget {
   const NirapodApp({Key? key}) : super(key: key);
@@ -51,8 +54,11 @@ class NirapodApp extends StatelessWidget {
         '/notices': (context) => const NoticesScreen(),
         '/notice-details': (context) => const NoticeDetailScreen(),
         '/audits': (context) => const AuditsScreen(),
+        '/audit-details': (context) => const AuditDetailScreen(),
         '/appeals': (context) => const AppealsScreen(),
         '/appeal-details': (context) => const AppealDetailScreen(),
+        '/vat-registrations': (context) => const VatRegistrationsScreen(),
+        '/vat-returns': (context) => const VatReturnsScreen(),
       },
     );
   }

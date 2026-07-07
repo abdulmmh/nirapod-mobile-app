@@ -1194,3 +1194,227 @@ class Appeal {
     };
   }
 }
+
+class VatRegistration {
+  final int id;
+  final String binNo;
+  final String businessName;
+  final String? ownerName;
+  final String vatCategory;
+  final String? businessType;
+  final String? businessCategory;
+  final String? tradeLicenseNo;
+  final String vatZone;
+  final String vatCircle;
+  final String? registrationDate;
+  final String? effectiveDate;
+  final String returnPeriod;
+  final String? expiryDate;
+  final double annualTurnover;
+  final String? email;
+  final String? phone;
+  final String? address;
+  final String? district;
+  final String? division;
+  final String status;
+  final String? remarks;
+  final String? tradeLicensePath;
+  final String? tinCertificatePath;
+  final String? nidAuthorizedPath;
+
+  VatRegistration({
+    required this.id,
+    required this.binNo,
+    required this.businessName,
+    this.ownerName,
+    required this.vatCategory,
+    this.businessType,
+    this.businessCategory,
+    this.tradeLicenseNo,
+    required this.vatZone,
+    required this.vatCircle,
+    this.registrationDate,
+    this.effectiveDate,
+    required this.returnPeriod,
+    this.expiryDate,
+    required this.annualTurnover,
+    this.email,
+    this.phone,
+    this.address,
+    this.district,
+    this.division,
+    required this.status,
+    this.remarks,
+    this.tradeLicensePath,
+    this.tinCertificatePath,
+    this.nidAuthorizedPath,
+  });
+
+  factory VatRegistration.fromJson(Map<String, dynamic> json) {
+    return VatRegistration(
+      id: json['id'] ?? 0,
+      binNo: json['binNo'] ?? json['bin_no'] ?? '',
+      businessName: json['businessName'] ?? json['business_name'] ?? '',
+      ownerName: json['ownerName'] ?? json['owner_name'],
+      vatCategory: json['vatCategory'] ?? json['vat_category'] ?? '',
+      businessType: json['businessType'] ?? json['business_type'],
+      businessCategory: json['businessCategory'] ?? json['business_category'],
+      tradeLicenseNo: json['tradeLicenseNo'] ?? json['trade_license_no'],
+      vatZone: json['vatZone'] ?? json['vat_zone'] ?? '',
+      vatCircle: json['vatCircle'] ?? json['vat_circle'] ?? '',
+      registrationDate: json['registrationDate'] ?? json['registration_date'],
+      effectiveDate: json['effectiveDate'] ?? json['effective_date'],
+      returnPeriod: json['returnPeriod'] ?? json['return_period'] ?? 'Monthly',
+      expiryDate: json['expiryDate'] ?? json['expiry_date'],
+      annualTurnover: double.tryParse(json['annualTurnover']?.toString() ?? '0.0') ?? 0.0,
+      email: json['email'],
+      phone: json['phone'],
+      address: json['address'],
+      district: json['district'],
+      division: json['division'],
+      status: json['status'] ?? 'Pending',
+      remarks: json['remarks'],
+      tradeLicensePath: json['tradeLicensePath'] ?? json['trade_license_path'],
+      tinCertificatePath: json['tinCertificatePath'] ?? json['tin_certificate_path'],
+      nidAuthorizedPath: json['nidAuthorizedPath'] ?? json['nid_authorized_path'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'binNo': binNo,
+      'businessName': businessName,
+      'ownerName': ownerName,
+      'vatCategory': vatCategory,
+      'businessType': businessType,
+      'businessCategory': businessCategory,
+      'tradeLicenseNo': tradeLicenseNo,
+      'vatZone': vatZone,
+      'vatCircle': vatCircle,
+      'registrationDate': registrationDate,
+      'effectiveDate': effectiveDate,
+      'returnPeriod': returnPeriod,
+      'expiryDate': expiryDate,
+      'annualTurnover': annualTurnover,
+      'email': email,
+      'phone': phone,
+      'address': address,
+      'district': district,
+      'division': division,
+      'status': status,
+      'remarks': remarks,
+      'tradeLicensePath': tradeLicensePath,
+      'tinCertificatePath': tinCertificatePath,
+      'nidAuthorizedPath': nidAuthorizedPath,
+    };
+  }
+}
+
+class VatReturn {
+  final int id;
+  final String returnNo;
+  final String binNo;
+  final String tinNumber;
+  final String businessName;
+  final String returnPeriod;
+  final String periodMonth;
+  final String periodYear;
+  final String? assessmentYear;
+  final double taxableSupplies;
+  final double exemptSupplies;
+  final double zeroRatedSupplies;
+  final double totalSupplies;
+  final double outputTax;
+  final double inputTax;
+  final double netTaxPayable;
+  final double taxPaid;
+  final String? submissionDate;
+  final String? dueDate;
+  final String status;
+  final String? submittedBy;
+  final String? submittedAt;
+  final String? remarks;
+
+  VatReturn({
+    required this.id,
+    required this.returnNo,
+    required this.binNo,
+    required this.tinNumber,
+    required this.businessName,
+    required this.returnPeriod,
+    required this.periodMonth,
+    required this.periodYear,
+    this.assessmentYear,
+    required this.taxableSupplies,
+    required this.exemptSupplies,
+    required this.zeroRatedSupplies,
+    required this.totalSupplies,
+    required this.outputTax,
+    required this.inputTax,
+    required this.netTaxPayable,
+    required this.taxPaid,
+    this.submissionDate,
+    this.dueDate,
+    required this.status,
+    this.submittedBy,
+    this.submittedAt,
+    this.remarks,
+  });
+
+  factory VatReturn.fromJson(Map<String, dynamic> json) {
+    return VatReturn(
+      id: json['id'] ?? 0,
+      returnNo: json['returnNo'] ?? json['return_no'] ?? '',
+      binNo: json['binNo'] ?? json['bin_no'] ?? '',
+      tinNumber: json['tinNumber'] ?? json['tin_number'] ?? '',
+      businessName: json['businessName'] ?? json['business_name'] ?? '',
+      returnPeriod: json['returnPeriod'] ?? json['return_period'] ?? 'Monthly',
+      periodMonth: json['periodMonth'] ?? json['period_month'] ?? '',
+      periodYear: json['periodYear'] ?? json['period_year'] ?? '',
+      assessmentYear: json['assessmentYear'] ?? json['assessment_year'],
+      taxableSupplies: double.tryParse(json['taxableSupplies']?.toString() ?? '0.0') ?? 0.0,
+      exemptSupplies: double.tryParse(json['exemptSupplies']?.toString() ?? '0.0') ?? 0.0,
+      zeroRatedSupplies: double.tryParse(json['zeroRatedSupplies']?.toString() ?? '0.0') ?? 0.0,
+      totalSupplies: double.tryParse(json['totalSupplies']?.toString() ?? '0.0') ?? 0.0,
+      outputTax: double.tryParse(json['outputTax']?.toString() ?? '0.0') ?? 0.0,
+      inputTax: double.tryParse(json['inputTax']?.toString() ?? '0.0') ?? 0.0,
+      netTaxPayable: double.tryParse(json['netTaxPayable']?.toString() ?? '0.0') ?? 0.0,
+      taxPaid: double.tryParse(json['taxPaid']?.toString() ?? '0.0') ?? 0.0,
+      submissionDate: json['submissionDate'] ?? json['submission_date'],
+      dueDate: json['dueDate'] ?? json['due_date'],
+      status: json['status'] ?? 'Draft',
+      submittedBy: json['submittedBy'] ?? json['submitted_by'],
+      submittedAt: json['submittedAt'] ?? json['submitted_at'],
+      remarks: json['remarks'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'returnNo': returnNo,
+      'binNo': binNo,
+      'tinNumber': tinNumber,
+      'businessName': businessName,
+      'returnPeriod': returnPeriod,
+      'periodMonth': periodMonth,
+      'periodYear': periodYear,
+      'assessmentYear': assessmentYear,
+      'taxableSupplies': taxableSupplies,
+      'exemptSupplies': exemptSupplies,
+      'zeroRatedSupplies': zeroRatedSupplies,
+      'totalSupplies': totalSupplies,
+      'outputTax': outputTax,
+      'inputTax': inputTax,
+      'netTaxPayable': netTaxPayable,
+      'taxPaid': taxPaid,
+      'submissionDate': submissionDate,
+      'dueDate': dueDate,
+      'status': status,
+      'submittedBy': submittedBy,
+      'submittedAt': submittedAt,
+      'remarks': remarks,
+    };
+  }
+}

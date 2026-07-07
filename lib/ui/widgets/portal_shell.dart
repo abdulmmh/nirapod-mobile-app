@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/taxpayer_provider.dart';
+import '../../core/constants/api_endpoints.dart';
 
 class PortalShell extends StatelessWidget {
   final Widget body;
@@ -43,138 +44,153 @@ class PortalShell extends StatelessWidget {
         children: [
           // ── 1. DARK GREEN NBR TOP BAR ──
           Container(
-            height: 64,
             color: const Color(0xFF14532D), // NBR Dark Green
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Brand Left
-                Row(
+            child: SafeArea(
+              bottom: false,
+              child: Container(
+                height: 64,
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    if (screenWidth < 850) ...[
-                      Builder(
-                        builder: (innerContext) => IconButton(
-                          icon: const Icon(Icons.menu, color: Colors.white),
-                          onPressed: () => Scaffold.of(innerContext).openDrawer(),
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                    ],
-                    InkWell(
-                      onTap: navigateHome,
-                      borderRadius: BorderRadius.circular(8),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: Colors.white24,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.shield, color: Colors.white, size: 20),
+                    // Brand Left
+                    Row(
+                      children: [
+                        if (screenWidth < 850) ...[
+                          Builder(
+                            builder: (innerContext) => IconButton(
+                              icon: const Icon(Icons.menu, color: Colors.white),
+                              onPressed: () => Scaffold.of(innerContext).openDrawer(),
                             ),
-                            const SizedBox(width: 10),
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
-                                Text(
-                                  'NBR Portal',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                    letterSpacing: 0.5,
+                          ),
+                          const SizedBox(width: 4),
+                        ],
+                        InkWell(
+                          onTap: navigateHome,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white24,
+                                    shape: BoxShape.circle,
                                   ),
+                                  child: const Icon(Icons.shield, color: Colors.white, size: 20),
                                 ),
-                                Text(
-                                  'GOVERNMENT OF BANGLADESH',
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 8,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                const SizedBox(width: 10),
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: const [
+                                    Text(
+                                      'NBR Portal',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                    Text(
+                                      'GOVERNMENT OF BANGLADESH',
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
 
-                // Center Segmented Navigation Menu (For Desktop/Wide screens)
-                if (screenWidth >= 850)
-                  _buildNavTabs(context, activeRoute),
-
-                // User Profile Right
-                Row(
-                  children: [
-                    // Profile Info (Hidden on very narrow mobile screens)
-                    if (screenWidth > 480) ...[
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            displayName,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            taxpayerCategory,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 9,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 12),
-                    ],
-                    // Avatar
-                    GestureDetector(
-                      onTap: () => Navigator.pushNamed(context, '/profile'),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white70, width: 1.5),
-                        ),
-                        child: CircleAvatar(
-                          radius: 18,
-                          backgroundColor: Colors.teal.shade700,
-                          child: Text(
-                            displayName.isNotEmpty ? displayName[0].toUpperCase() : 'T',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Logout (Only on desktop, inside drawer on mobile)
+                    // Center Segmented Navigation Menu (For Desktop/Wide screens)
                     if (screenWidth >= 850)
-                      IconButton(
-                        icon: const Icon(Icons.logout, color: Colors.white70, size: 18),
-                        tooltip: 'Logout',
-                        onPressed: () async {
-                          await auth.logout();
-                          if (context.mounted) Navigator.pushReplacementNamed(context, '/login');
-                        },
-                      ),
+                      _buildNavTabs(context, activeRoute),
+
+                    // User Profile Right
+                    Row(
+                      children: [
+                        // Profile Info (Hidden on very narrow mobile screens)
+                        if (screenWidth > 480) ...[
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                displayName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                taxpayerCategory,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 9,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        // Avatar
+                        Builder(
+                          builder: (context) {
+                            final photoPath = taxpayer?.photoPath;
+                            return GestureDetector(
+                              onTap: () => Navigator.pushNamed(context, '/profile'),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white70, width: 1.5),
+                                ),
+                                child: CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: Colors.teal.shade700,
+                                  backgroundImage: photoPath != null && photoPath.isNotEmpty
+                                      ? NetworkImage('${ApiEndpoints.baseUrl.replaceAll('/api', '')}$photoPath')
+                                      : null,
+                                  child: photoPath == null || photoPath.isEmpty
+                                      ? Text(
+                                          displayName.isNotEmpty ? displayName[0].toUpperCase() : 'T',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                              ),
+                            );
+                          }
+                        ),
+                        const SizedBox(width: 8),
+                        // Logout (Only on desktop, inside drawer on mobile)
+                        if (screenWidth >= 850)
+                          IconButton(
+                            icon: const Icon(Icons.logout, color: Colors.white70, size: 18),
+                            tooltip: 'Logout',
+                            onPressed: () async {
+                              await auth.logout();
+                              if (context.mounted) Navigator.pushReplacementNamed(context, '/login');
+                            },
+                          ),
+                      ],
+                    ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
 

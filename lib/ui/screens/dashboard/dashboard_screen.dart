@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/taxpayer_provider.dart';
 import '../../../providers/portal_provider.dart';
+import '../../../core/constants/api_endpoints.dart';
 import '../../widgets/stat_card.dart';
 import '../../widgets/portal_shell.dart';
 
@@ -31,7 +32,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       
       if (mounted && user.taxpayerId != null) {
         final portalProv = Provider.of<PortalProvider>(context, listen: false);
-        await portalProv.loadAllData(user.taxpayerId!, user.taxpayerType ?? 'Individual');
+        final name = taxpayerProv.taxpayer?.fullName ?? taxpayerProv.taxpayer?.companyName;
+        final tin = taxpayerProv.taxpayer?.tin;
+        await portalProv.loadAllData(
+          user.taxpayerId!,
+          user.taxpayerType ?? 'Individual',
+          taxpayerName: name,
+          tinNumber: tin,
+        );
       }
     }
   }
@@ -101,7 +109,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // User Header Card
-            _buildUserHeader(displayName, tinStr, category, approvalStatus, isDark, theme),
+            _buildUserHeader(displayName, tinStr, category, approvalStatus, taxpayerProv.taxpayer?.photoPath, isDark, theme),
                         const SizedBox(height: 20),
 
                         // Profile Completion progress card
@@ -174,6 +182,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     String tin,
     String category,
     String status,
+    String? photoPath,
     bool isDark,
     ThemeData theme,
   ) {
@@ -217,10 +226,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           CircleAvatar(
             radius: 30,
             backgroundColor: Colors.white,
-            child: Text(
-              name.isNotEmpty ? name.substring(0, 1).toUpperCase() : 'N',
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primary),
-            ),
+            backgroundImage: photoPath != null && photoPath.isNotEmpty
+                ? NetworkImage('${ApiEndpoints.baseUrl.replaceAll('/api', '')}$photoPath')
+                : null,
+            child: photoPath == null || photoPath.isEmpty
+                ? Text(
+                    name.isNotEmpty ? name.substring(0, 1).toUpperCase() : 'N',
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primary),
+                  )
+                : null,
           ),
           const SizedBox(width: 18),
           Expanded(
@@ -361,32 +375,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
               style: theme.textTheme.bodySmall?.copyWith(color: AppColors.error),
             ),
           ],
-          if (completion < 100) ...[
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF14532D),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                onPressed: () => Navigator.pushNamed(context, '/profile-edit'),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Text(
-                      'Complete Profile',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                    ),
-                    SizedBox(width: 8),
-                    Icon(Icons.arrow_forward, size: 16),
-                  ],
-                ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF14532D),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () => Navigator.pushNamed(context, '/profile-edit'),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(completion < 100 ? Icons.arrow_forward : Icons.edit, size: 16),
+                  const SizedBox(width: 8),
+                  Text(
+                    completion < 100 ? 'Complete Profile' : 'Edit Profile',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ],
       ),
     );
@@ -415,11 +427,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } else if (category.toLowerCase() == 'business') {
       menuItems = [
         {'label': 'My TIN Details', 'icon': Icons.badge_outlined, 'color': AppColors.primary, 'route': '/profile'},
-        {'label': 'VAT Registrations', 'icon': Icons.storefront_outlined, 'color': Colors.indigo, 'route': '/businesses'},
-        {'label': 'VAT Returns', 'icon': Icons.description_outlined, 'color': Colors.orange, 'route': '/itr'},
+        {'label': 'My Businesses', 'icon': Icons.storefront_outlined, 'color': Colors.indigo, 'route': '/businesses'},
+        {'label': 'Income Tax Return', 'icon': Icons.description_outlined, 'color': Colors.orange, 'route': '/itr'},
+        {'label': 'AIT Records', 'icon': Icons.receipt_long_outlined, 'color': Colors.purple, 'route': '/ait'},
+        {'label': 'VAT Registrations', 'icon': Icons.storefront_outlined, 'color': Colors.indigo, 'route': '/vat-registrations'},
+        {'label': 'VAT Returns', 'icon': Icons.description_outlined, 'color': Colors.orange, 'route': '/vat-returns'},
         {'label': 'Payments', 'icon': Icons.payment_outlined, 'color': Colors.green, 'route': '/payments'},
         {'label': 'Official Notices', 'icon': Icons.campaign_outlined, 'color': Colors.red, 'route': '/notices'},
         {'label': 'My Audits', 'icon': Icons.search_outlined, 'color': Colors.blue, 'route': '/audits'},
+        {'label': 'My Appeals', 'icon': Icons.gavel_outlined, 'color': Colors.amber, 'route': '/appeals'},
       ];
     } else {
       menuItems = [

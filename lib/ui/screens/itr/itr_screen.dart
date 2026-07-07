@@ -136,7 +136,12 @@ class _ItrScreenState extends State<ItrScreen> {
         body: portalProv.isLoading
             ? const Center(child: CircularProgressIndicator())
             : RefreshIndicator(
-                onRefresh: () => portalProv.loadAllData(taxpayerId, auth.currentUser?.taxpayerType ?? 'Individual'),
+                onRefresh: () => portalProv.loadAllData(
+                  taxpayerId,
+                  auth.currentUser?.taxpayerType ?? 'Individual',
+                  taxpayerName: taxpayerName,
+                  tinNumber: tinNumber,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -193,9 +198,7 @@ class _ItrScreenState extends State<ItrScreen> {
                     // List of ITR returns
                     filteredItrs.isEmpty
                         ? _buildEmptyState(theme, isDark)
-                        : (isMobile
-                            ? _buildMobileList(filteredItrs, isDark, theme)
-                            : _buildDesktopTable(filteredItrs, isDark, theme)),
+                        : _buildListGrid(filteredItrs, isDark, theme),
                   ],
                 ),
               ),
@@ -406,97 +409,168 @@ class _ItrScreenState extends State<ItrScreen> {
     );
   }
 
-  Widget _buildMobileList(List<ItrRecord> list, bool isDark, ThemeData theme) {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: list.length,
-      itemBuilder: (context, index) {
-        final r = list[index];
-        final statusColor = _getStatusColor(r.status);
-        final netPayable = (r.grossTax ?? 0.0) - (r.rebate ?? 0.0);
-
-        return Card(
-          margin: const EdgeInsets.only(bottom: 14),
-          clipBehavior: Clip.antiAlias,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: isDark ? AppColors.borderDark : AppColors.border),
+  Widget _buildListGrid(List<ItrRecord> list, bool isDark, ThemeData theme) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double width = constraints.maxWidth;
+        // Desktop: 3 columns; Tablet: 2 columns; Mobile: 1 column
+        final int crossAxisCount = width > 1100 ? 3 : (width > 680 ? 2 : 1);
+        
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            mainAxisExtent: 220,
           ),
-          child: InkWell(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => ItrDetailsScreen(itrId: r.id)),
-            ),
-            child: Row(
-              children: [
-                // Left accent border indicating status
-                Container(
-                  width: 6,
-                  height: 150,
-                  color: statusColor,
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              r.returnNo ?? 'Draft ITR',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'monospace',
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: statusColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                r.status,
-                                style: TextStyle(
-                                  color: statusColor,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 10,
+          itemCount: list.length,
+          itemBuilder: (context, index) {
+            final r = list[index];
+            final statusColor = _getStatusColor(r.status);
+            final netPayable = (r.grossTax ?? 0.0) - (r.rebate ?? 0.0);
+            
+            return Container(
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.surfaceDark : Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: isDark ? AppColors.borderDark : Colors.grey.shade200),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.02),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Status top line accent
+                    Container(
+                      height: 4,
+                      color: statusColor,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Return No & Status Badges
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEFF6FF),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFFBFDBFE)),
+                                ),
+                                child: Text(
+                                  r.returnNo ?? 'Draft ITR',
+                                  style: const TextStyle(
+                                    color: Color(0xFF1E40AF),
+                                    fontFamily: 'monospace',
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
                                 ),
                               ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: statusColor.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  r.status,
+                                  style: TextStyle(
+                                    color: statusColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          
+                          // Taxpayer name
+                          Text(
+                            r.taxpayerName ?? 'Tasrif Zaman',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'TIN: ${r.tinNumber ?? '—'}  ·  AY: ${r.assessmentYear}',
+                            style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Divider(color: Colors.grey.shade100, height: 1),
+                          const SizedBox(height: 10),
+                          
+                          // Financial columns
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _buildInfoCol('Gross Income', _formatAmount(r.grossIncome), theme, isDark),
+                              _buildInfoCol('Net Tax', _formatAmount(netPayable), theme, isDark),
+                              _buildInfoCol('Tax Paid', _formatAmount(r.taxPaid), theme, isDark),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+                    
+                    // Footer details button
+                    InkWell(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => ItrDetailsScreen(itrId: r.id)),
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          border: Border(top: BorderSide(color: Colors.grey.shade100)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.visibility_outlined, size: 14, color: Color(0xFF1E40AF)),
+                            SizedBox(width: 6),
+                            Text(
+                              'View Details',
+                              style: TextStyle(
+                                color: Color(0xFF1E40AF),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          r.taxpayerName ?? 'Tasrif Zaman',
-                          style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'TIN: ${r.tinNumber ?? '—'} · Assessment: ${r.assessmentYear}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
-                          ),
-                        ),
-                        const Divider(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(child: _buildInfoCol('Gross Income', _formatAmount(r.grossIncome), theme, isDark)),
-                            Expanded(child: _buildInfoCol('Net Tax', _formatAmount(netPayable), theme, isDark)),
-                            Expanded(child: _buildInfoCol('Tax Paid', _formatAmount(r.taxPaid), theme, isDark)),
-                          ],
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -508,114 +582,22 @@ class _ItrScreenState extends State<ItrScreen> {
       children: [
         Text(
           label,
-          style: theme.textTheme.bodySmall?.copyWith(
+          style: TextStyle(
             fontSize: 9,
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+            color: Colors.grey.shade500,
+            fontWeight: FontWeight.w500,
           ),
         ),
         const SizedBox(height: 2),
         Text(
           val,
-          style: theme.textTheme.bodyMedium?.copyWith(
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 12,
+            color: Colors.black87,
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildDesktopTable(List<ItrRecord> list, bool isDark, ThemeData theme) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? AppColors.borderDark : AppColors.border),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Scrollbar(
-          controller: _tableScrollController,
-          thumbVisibility: true,
-          child: SingleChildScrollView(
-            controller: _tableScrollController,
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
-              headingRowColor: WidgetStateProperty.all(isDark ? Colors.grey.shade900 : Colors.grey.shade50),
-              dataRowHeight: 64,
-              columns: const [
-                DataColumn(label: Text('Return No')),
-                DataColumn(label: Text('Taxpayer')),
-                DataColumn(label: Text('Category')),
-                DataColumn(label: Text('Assmnt Year')),
-                DataColumn(label: Text('Gross Income')),
-                DataColumn(label: Text('Net Tax')),
-                DataColumn(label: Text('Paid')),
-                DataColumn(label: Text('Status')),
-                DataColumn(label: Text('Action')),
-              ],
-              rows: list.map((r) {
-                final statusColor = _getStatusColor(r.status);
-                final netPayable = (r.grossTax ?? 0.0) - (r.rebate ?? 0.0);
-
-                return DataRow(
-                  cells: [
-                    DataCell(
-                      Text(
-                        r.returnNo ?? 'Draft ITR',
-                        style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    DataCell(
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(r.taxpayerName ?? 'Tasrif Zaman', style: const TextStyle(fontWeight: FontWeight.bold)),
-                          Text(r.tinNumber ?? '—', style: TextStyle(fontSize: 11, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary)),
-                        ],
-                      ),
-                    ),
-                    DataCell(Text(r.itrCategory ?? 'Individual')),
-                    DataCell(Text(r.assessmentYear)),
-                    DataCell(Text(_formatAmount(r.grossIncome))),
-                    DataCell(Text(_formatAmount(netPayable))),
-                    DataCell(Text(_formatAmount(r.taxPaid))),
-                    DataCell(
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          r.status,
-                          style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 11),
-                        ),
-                      ),
-                    ),
-                    DataCell(
-                      Row(
-                        children: [
-                          TextButton.icon(
-                            icon: const Icon(Icons.visibility, size: 16),
-                            label: const Text('View'),
-                            onPressed: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => ItrDetailsScreen(itrId: r.id)),
-                            ),
-                            style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-              }).toList(),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

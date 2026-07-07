@@ -217,43 +217,56 @@ class TaxpayerProvider extends ChangeNotifier {
   }
 
   // Upload profile photo
-  Future<bool> uploadPhoto(String base64Image) async {
+  Future<bool> uploadPhoto(List<int> bytes, String filename) async {
     if (_taxpayer == null) return false;
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
     try {
-      // Mock upload success or call endpoint
-      _taxpayer = Taxpayer(
-        id: _taxpayer!.id,
-        fullName: _taxpayer!.fullName,
-        companyName: _taxpayer!.companyName,
-        tin: _taxpayer!.tin,
-        nid: _taxpayer!.nid,
-        dateOfBirth: _taxpayer!.dateOfBirth,
-        gender: _taxpayer!.gender,
-        phone: _taxpayer!.phone,
-        email: _taxpayer!.email,
-        profession: _taxpayer!.profession,
-        fathersName: _taxpayer!.fathersName,
-        mothersName: _taxpayer!.mothersName,
-        presentAddress: _taxpayer!.presentAddress,
-        photoPath: '/uploads/profiles/mock_avatar.png',
-        approvalStatus: _taxpayer!.approvalStatus,
-        taxpayerType: _taxpayer!.taxpayerType,
-        rjscNo: _taxpayer!.rjscNo,
-        natureOfBusiness: _taxpayer!.natureOfBusiness,
-        authorizedPersonName: _taxpayer!.authorizedPersonName,
-        authorizedPersonNid: _taxpayer!.authorizedPersonNid,
+      final formData = FormData.fromMap({
+        'file': MultipartFile.fromBytes(bytes, filename: filename),
+      });
+
+      final response = await apiClient.post(
+        ApiEndpoints.taxpayerUploadPhoto(_taxpayer!.id),
+        data: formData,
       );
-      _isLoading = false;
-      notifyListeners();
-      return true;
-    } catch (_) {
-      _isLoading = false;
-      notifyListeners();
-      return false;
+
+      if (response.data != null && response.data['photoUrl'] != null) {
+        final String photoUrl = response.data['photoUrl'];
+        _taxpayer = Taxpayer(
+          id: _taxpayer!.id,
+          fullName: _taxpayer!.fullName,
+          companyName: _taxpayer!.companyName,
+          tin: _taxpayer!.tin,
+          nid: _taxpayer!.nid,
+          dateOfBirth: _taxpayer!.dateOfBirth,
+          gender: _taxpayer!.gender,
+          phone: _taxpayer!.phone,
+          email: _taxpayer!.email,
+          profession: _taxpayer!.profession,
+          fathersName: _taxpayer!.fathersName,
+          mothersName: _taxpayer!.mothersName,
+          presentAddress: _taxpayer!.presentAddress,
+          photoPath: photoUrl,
+          approvalStatus: _taxpayer!.approvalStatus,
+          taxpayerType: _taxpayer!.taxpayerType,
+          rjscNo: _taxpayer!.rjscNo,
+          natureOfBusiness: _taxpayer!.natureOfBusiness,
+          authorizedPersonName: _taxpayer!.authorizedPersonName,
+          authorizedPersonNid: _taxpayer!.authorizedPersonNid,
+        );
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to upload photo: $e';
     }
+    _isLoading = false;
+    notifyListeners();
+    return false;
   }
 
   // Load static mock details based on taxpayer category

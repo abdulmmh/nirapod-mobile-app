@@ -71,6 +71,22 @@ class _PaymentCreateScreenState extends State<PaymentCreateScreen> {
         // Load outstanding items
         Provider.of<PortalProvider>(context, listen: false).loadOutstandingItems(taxpayer.id);
       }
+
+      // Read navigation arguments if any (e.g. from Demand Notice screen)
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Map<String, dynamic>) {
+        setState(() {
+          if (args.containsKey('amount')) {
+            _amountController.text = args['amount'].toString();
+          }
+          if (args.containsKey('paymentType')) {
+            _paymentType = args['paymentType'];
+          }
+          if (args.containsKey('returnNo')) {
+            _returnNoController.text = args['returnNo'];
+          }
+        });
+      }
     });
   }
 

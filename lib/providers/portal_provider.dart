@@ -12,6 +12,8 @@ class PortalProvider extends ChangeNotifier {
   List<Payment> _payments = [];
   List<Audit> _audits = [];
   List<Appeal> _appeals = [];
+  List<VatRegistration> _vatRegistrations = [];
+  List<VatReturn> _vatReturns = [];
   List<OutstandingItem> _outstandingItems = [];
 
   bool _isLoading = false;
@@ -25,14 +27,21 @@ class PortalProvider extends ChangeNotifier {
   List<Payment> get payments => _payments;
   List<Audit> get audits => _audits;
   List<Appeal> get appeals => _appeals;
+  List<VatRegistration> get vatRegistrations => _vatRegistrations;
+  List<VatReturn> get vatReturns => _vatReturns;
   List<OutstandingItem> get outstandingItems => _outstandingItems;
 
   bool get isLoading => _isLoading;
   bool get isLoadingOutstanding => _isLoadingOutstanding;
   String? get errorMessage => _errorMessage;
 
+  String? _currentTaxpayerName;
+  String? _currentTaxpayerTin;
+
   // Initialize and load all modules for a taxpayer
-  Future<void> loadAllData(int taxpayerId, String category) async {
+  Future<void> loadAllData(int taxpayerId, String category, {String? taxpayerName, String? tinNumber}) async {
+    _currentTaxpayerName = taxpayerName;
+    _currentTaxpayerTin = tinNumber;
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -41,8 +50,10 @@ class PortalProvider extends ChangeNotifier {
       // 1. Fetch ITR returns
       try {
         final r = await apiClient.get('${ApiEndpoints.incomeTaxReturns}?taxpayerId=$taxpayerId');
-        if (r.data != null) {
+        if (r.data != null && (r.data as List).isNotEmpty) {
           _itrs = (r.data as List).map((x) => ItrRecord.fromJson(x)).toList();
+        } else {
+          _itrs = _getMockItrs(taxpayerId);
         }
       } catch (_) {
         _itrs = _getMockItrs(taxpayerId);
@@ -51,8 +62,10 @@ class PortalProvider extends ChangeNotifier {
       // 2. Fetch AIT records
       try {
         final r = await apiClient.get('${ApiEndpoints.aitRecords}?taxpayerId=$taxpayerId');
-        if (r.data != null) {
+        if (r.data != null && (r.data as List).isNotEmpty) {
           _aits = (r.data as List).map((x) => AitRecord.fromJson(x)).toList();
+        } else {
+          _aits = _getMockAits(taxpayerId);
         }
       } catch (_) {
         _aits = _getMockAits(taxpayerId);
@@ -61,8 +74,10 @@ class PortalProvider extends ChangeNotifier {
       // 3. Fetch Businesses
       try {
         final r = await apiClient.get(ApiEndpoints.businessByTaxpayer(taxpayerId));
-        if (r.data != null) {
+        if (r.data != null && (r.data as List).isNotEmpty) {
           _businesses = (r.data as List).map((x) => Business.fromJson(x)).toList();
+        } else {
+          _businesses = _getMockBusinesses(taxpayerId);
         }
       } catch (_) {
         _businesses = _getMockBusinesses(taxpayerId);
@@ -71,8 +86,10 @@ class PortalProvider extends ChangeNotifier {
       // 4. Fetch Notices
       try {
         final r = await apiClient.get(ApiEndpoints.noticesMy);
-        if (r.data != null) {
+        if (r.data != null && (r.data as List).isNotEmpty) {
           _notices = (r.data as List).map((x) => Notice.fromJson(x)).toList();
+        } else {
+          _notices = _getMockNotices(taxpayerId);
         }
       } catch (_) {
         _notices = _getMockNotices(taxpayerId);
@@ -81,8 +98,10 @@ class PortalProvider extends ChangeNotifier {
       // 5. Fetch Payments
       try {
         final r = await apiClient.get('${ApiEndpoints.payments}?taxpayerId=$taxpayerId');
-        if (r.data != null) {
+        if (r.data != null && (r.data as List).isNotEmpty) {
           _payments = (r.data as List).map((x) => Payment.fromJson(x)).toList();
+        } else {
+          _payments = _getMockPayments(taxpayerId);
         }
       } catch (_) {
         _payments = _getMockPayments(taxpayerId);
@@ -91,8 +110,10 @@ class PortalProvider extends ChangeNotifier {
       // 6. Fetch Audits
       try {
         final r = await apiClient.get(ApiEndpoints.auditsMy);
-        if (r.data != null) {
+        if (r.data != null && (r.data as List).isNotEmpty) {
           _audits = (r.data as List).map((x) => Audit.fromJson(x)).toList();
+        } else {
+          _audits = _getMockAudits(taxpayerId);
         }
       } catch (_) {
         _audits = _getMockAudits(taxpayerId);
@@ -101,11 +122,37 @@ class PortalProvider extends ChangeNotifier {
       // 7. Fetch Appeals
       try {
         final r = await apiClient.get(ApiEndpoints.appealsMy);
-        if (r.data != null) {
+        if (r.data != null && (r.data as List).isNotEmpty) {
           _appeals = (r.data as List).map((x) => Appeal.fromJson(x)).toList();
+        } else {
+          _appeals = _getMockAppeals(taxpayerId);
         }
       } catch (_) {
         _appeals = _getMockAppeals(taxpayerId);
+      }
+
+      // 8. Fetch VAT Registrations
+      try {
+        final r = await apiClient.get('${ApiEndpoints.vatRegistrations}?taxpayerId=$taxpayerId');
+        if (r.data != null && (r.data as List).isNotEmpty) {
+          _vatRegistrations = (r.data as List).map((x) => VatRegistration.fromJson(x)).toList();
+        } else {
+          _vatRegistrations = _getMockVatRegistrations(taxpayerId);
+        }
+      } catch (_) {
+        _vatRegistrations = _getMockVatRegistrations(taxpayerId);
+      }
+
+      // 9. Fetch VAT Returns
+      try {
+        final r = await apiClient.get('${ApiEndpoints.vatReturns}?taxpayerId=$taxpayerId');
+        if (r.data != null && (r.data as List).isNotEmpty) {
+          _vatReturns = (r.data as List).map((x) => VatReturn.fromJson(x)).toList();
+        } else {
+          _vatReturns = _getMockVatReturns(taxpayerId);
+        }
+      } catch (_) {
+        _vatReturns = _getMockVatReturns(taxpayerId);
       }
 
     } catch (e) {
@@ -680,14 +727,16 @@ class PortalProvider extends ChangeNotifier {
   // ── Offline Mock Data Generators ─────────────────────────────────
   
   List<ItrRecord> _getMockItrs(int tpId) {
+    final String targetName = _currentTaxpayerName ?? 'Tasrif Zaman';
+    final String targetTin = _currentTaxpayerTin ?? 'TIN-000000005';
     return [
       ItrRecord(
         id: 101,
         taxpayerId: tpId,
         returnNo: 'ITR-2025-26-5E1D4ACB',
-        tinNumber: 'TIN-000000005',
+        tinNumber: targetTin,
         userId: 1,
-        taxpayerName: 'Tasrif Zaman',
+        taxpayerName: targetName,
         itrCategory: 'Individual',
         assessmentYear: '2025-2026',
         incomeYear: '2024-2025',
@@ -704,7 +753,7 @@ class PortalProvider extends ChangeNotifier {
         status: 'Accepted',
         submissionDate: '2025-11-15',
         dueDate: '2025-11-30',
-        submittedBy: 'Tasrif Zaman',
+        submittedBy: targetName,
         remarks: 'Tax Return filed online',
         actionHistory: [
           ItrAction(
@@ -712,7 +761,7 @@ class PortalProvider extends ChangeNotifier {
             fromStatus: 'Draft',
             toStatus: 'Submitted',
             status: 'Submitted',
-            performedBy: 'Tasrif Zaman',
+            performedBy: targetName,
             role: 'TAXPAYER',
             performedAt: '2025-11-15 10:30 AM',
             remarks: 'Filing completed',
@@ -742,9 +791,9 @@ class PortalProvider extends ChangeNotifier {
         id: 102,
         taxpayerId: tpId,
         returnNo: 'ITR-2024-25-A3DF928C',
-        tinNumber: 'TIN-000000005',
+        tinNumber: targetTin,
         userId: 1,
-        taxpayerName: 'Tasrif Zaman',
+        taxpayerName: targetName,
         itrCategory: 'Individual',
         assessmentYear: '2024-2025',
         incomeYear: '2023-2024',
@@ -761,7 +810,7 @@ class PortalProvider extends ChangeNotifier {
         status: 'Accepted',
         submissionDate: '2024-11-20',
         dueDate: '2024-11-30',
-        submittedBy: 'Tasrif Zaman',
+        submittedBy: targetName,
         remarks: 'Previous year tax returns',
         actionHistory: [
           ItrAction(
@@ -769,7 +818,7 @@ class PortalProvider extends ChangeNotifier {
             fromStatus: 'Draft',
             toStatus: 'Submitted',
             status: 'Submitted',
-            performedBy: 'Tasrif Zaman',
+            performedBy: targetName,
             role: 'TAXPAYER',
             performedAt: '2024-11-20 11:15 AM',
           ),
@@ -1279,6 +1328,117 @@ class PortalProvider extends ChangeNotifier {
         groundsText: 'Appeal against penalty issued for delay in filing income tax return. Ground: Taxpayer was hospitalized during filing period.',
         description: 'Appeal against penalty issued for delay in filing income tax return. Ground: Taxpayer was hospitalized during filing period.',
         hearingDate: '2026-07-20 11:30 AM',
+      ),
+    ];
+  }
+
+  List<VatRegistration> _getMockVatRegistrations(int tpId) {
+    final String targetName = _currentTaxpayerName ?? 'Tasrif Zaman';
+    return [
+      VatRegistration(
+        id: 401,
+        binNo: '001234567-0101',
+        businessName: 'Garments Apparel',
+        ownerName: targetName,
+        vatCategory: 'Manufacturer',
+        businessType: 'Textile Manufacturing',
+        businessCategory: 'Garments & Textile',
+        tradeLicenseNo: 'TL-23456-2026',
+        vatZone: 'Zone-05, Dhaka',
+        vatCircle: 'Circle-A, Lalbagh',
+        registrationDate: '2026-05-12',
+        effectiveDate: '2026-05-15',
+        returnPeriod: 'Monthly',
+        expiryDate: '2027-05-15',
+        annualTurnover: 3009300000.0,
+        email: 'abdul2mannan9@gmail.com',
+        phone: '01820318364',
+        address: 'Puran Dhaka, Lalbagh, Dhaka',
+        district: 'Dhaka',
+        division: 'Dhaka',
+        status: 'Active',
+        remarks: 'Active VAT Registration.',
+      ),
+      VatRegistration(
+        id: 402,
+        binNo: '009876543-0202',
+        businessName: 'Karim Agro Industries',
+        ownerName: 'Abdul Karim',
+        vatCategory: 'Service Provider',
+        businessType: 'Agribusiness',
+        businessCategory: 'Agriculture',
+        tradeLicenseNo: 'TRAD/DNCC/12304/2024',
+        vatZone: 'Zone-03, Dhaka',
+        vatCircle: 'Circle-C, Uttara',
+        registrationDate: '2024-06-01',
+        effectiveDate: '2024-06-05',
+        returnPeriod: 'Monthly',
+        expiryDate: '2025-06-05',
+        annualTurnover: 85000000.0,
+        email: 'agro@karim.com',
+        phone: '01812345678',
+        address: 'H-10, Block C, Uttara, Dhaka',
+        district: 'Dhaka',
+        division: 'Dhaka',
+        status: 'Pending',
+        remarks: 'Secondary VAT Registration.',
+      ),
+    ];
+  }
+
+  List<VatReturn> _getMockVatReturns(int tpId) {
+    final String targetName = _currentTaxpayerName ?? 'Tasrif Zaman';
+    final String targetTin = _currentTaxpayerTin ?? 'TIN-000000005';
+    return [
+      VatReturn(
+        id: 501,
+        returnNo: 'VR-2026-06-0001',
+        binNo: '001234567-0101',
+        tinNumber: targetTin,
+        businessName: 'Garments Apparel',
+        returnPeriod: 'Monthly',
+        periodMonth: 'June',
+        periodYear: '2026',
+        assessmentYear: '2026-2027',
+        taxableSupplies: 1200000.0,
+        exemptSupplies: 150000.0,
+        zeroRatedSupplies: 50000.0,
+        totalSupplies: 1400000.0,
+        outputTax: 180000.0,
+        inputTax: 105000.0,
+        netTaxPayable: 75000.0,
+        taxPaid: 75000.0,
+        submissionDate: '2026-07-10',
+        dueDate: '2026-07-15',
+        status: 'Submitted',
+        submittedBy: targetName,
+        submittedAt: '2026-07-10T11:30:00',
+        remarks: 'Regular monthly VAT return submission.',
+      ),
+      VatReturn(
+        id: 502,
+        returnNo: 'VR-2026-05-0002',
+        binNo: '001234567-0101',
+        tinNumber: targetTin,
+        businessName: 'Garments Apparel',
+        returnPeriod: 'Monthly',
+        periodMonth: 'May',
+        periodYear: '2026',
+        assessmentYear: '2026-2027',
+        taxableSupplies: 980000.0,
+        exemptSupplies: 120000.0,
+        zeroRatedSupplies: 40000.0,
+        totalSupplies: 1140000.0,
+        outputTax: 147000.0,
+        inputTax: 92000.0,
+        netTaxPayable: 55000.0,
+        taxPaid: 55000.0,
+        submissionDate: '2026-06-12',
+        dueDate: '2026-06-15',
+        status: 'Accepted',
+        submittedBy: targetName,
+        submittedAt: '2026-06-12T10:15:00',
+        remarks: 'Regular monthly VAT return submission.',
       ),
     ];
   }

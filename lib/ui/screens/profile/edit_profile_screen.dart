@@ -1,6 +1,9 @@
+import 'dart:io' as io;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/api_endpoints.dart';
 import '../../../providers/taxpayer_provider.dart';
 import '../../../data/models/taxpayer.dart';
 import '../../widgets/custom_button.dart';
@@ -39,7 +42,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   final List<String> _genders = ['Male', 'Female', 'Other'];
   final List<String> _statuses = ['Active', 'Pending', 'Suspended'];
-  final List<String> _taxpayerTypes = ['Resident Individual', 'Non-Resident Individual', 'Local Company', 'Foreign Company'];
+  final List<String> _taxpayerTypes = ['Resident Individual', 'Non-Resident Individual', 'Local Company', 'Foreign Company', 'Partnership', 'NGO'];
   final List<String> _divisions = ['Dhaka', 'Chattogram', 'Rajshahi', 'Khulna', 'Barishal', 'Sylhet', 'Rangpur', 'Mymensingh'];
   final List<String> _districts = ['Dhaka', 'Gazipur', 'Narayanganj', 'Chattogram', 'Cox\'s Bazar', 'Sylhet', 'Bogura', 'Khulna'];
 
@@ -60,6 +63,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _addressDetailsController = TextEditingController(text: taxpayer.presentAddress?.details ?? '');
 
         _selectedTaxpayerType = taxpayer.taxpayerType?.typeName ?? 'Resident Individual';
+        if (!_taxpayerTypes.contains(_selectedTaxpayerType)) {
+          if (_selectedTaxpayerType != null) {
+            _taxpayerTypes.add(_selectedTaxpayerType!);
+          } else {
+            _selectedTaxpayerType = 'Resident Individual';
+          }
+        }
+        
         _selectedGender = taxpayer.gender;
         if (!_genders.contains(_selectedGender)) _selectedGender = null;
 
@@ -116,13 +127,56 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  void _updateProfilePhoto() {
-    setState(() {
-      _photoPath = '/uploads/profiles/mock_avatar.png';
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Mock photo selected successfully!')),
-    );
+  void _updateProfilePhoto() async {
+    try {
+      final FilePickerResult? result = await FilePicker.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+      );
+
+      if (result != null) {
+        List<int>? fileBytes;
+        String? fileName;
+
+        if (result.files.single.bytes != null) {
+          fileBytes = result.files.single.bytes!;
+          fileName = result.files.single.name;
+        } else if (result.files.single.path != null) {
+          final ioFile = io.File(result.files.single.path!);
+          fileBytes = await ioFile.readAsBytes();
+          fileName = result.files.single.name;
+        }
+
+        if (fileBytes != null && fileName != null) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Uploading photo...'), duration: Duration(seconds: 2)),
+          );
+
+          final provider = Provider.of<TaxpayerProvider>(context, listen: false);
+          final success = await provider.uploadPhoto(fileBytes, fileName);
+
+          if (success && mounted) {
+            setState(() {
+              _photoPath = provider.taxpayer?.photoPath;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Photo uploaded successfully!')),
+            );
+          } else if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(provider.errorMessage ?? 'Upload failed.')),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to select file: $e')),
+        );
+      }
+    }
   }
 
   void _saveProfile() async {
@@ -345,7 +399,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         CircleAvatar(
                           radius: 36,
                           backgroundColor: Colors.teal.shade50,
-                          backgroundImage: _photoPath != null ? const AssetImage('assets/images/placeholder.png') : null,
+                          backgroundImage: _photoPath != null
+                              ? NetworkImage('${ApiEndpoints.baseUrl.replaceAll('/api', '')}$_photoPath')
+                              : null,
                           child: _photoPath == null
                               ? const Icon(Icons.person, size: 36, color: AppColors.primary)
                               : null,
