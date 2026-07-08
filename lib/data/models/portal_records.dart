@@ -1102,6 +1102,11 @@ class Appeal {
   final String? hearingDate;
   
   // New fields matching the backend Appeal model
+  final int? auditCaseId;
+  final int? demandNoticeId;
+  final int? assessmentId;
+  final String? appealType;
+  final String? remarks;
   final String? appealNo;
   final double? demandedAmount;
   final double? disputedAmount;
@@ -1125,6 +1130,11 @@ class Appeal {
     required this.status,
     this.description,
     this.hearingDate,
+    this.auditCaseId,
+    this.demandNoticeId,
+    this.assessmentId,
+    this.appealType,
+    this.remarks,
     this.appealNo,
     this.demandedAmount,
     this.disputedAmount,
@@ -1150,6 +1160,11 @@ class Appeal {
       status: json['status'] ?? 'Filed',
       description: json['groundsText'] ?? json['description'] ?? json['groundsOfAppeal'] ?? json['remarks'] ?? '',
       hearingDate: json['hearingDate'],
+      auditCaseId: json['auditCaseId'] ?? (json['auditCase'] != null ? json['auditCase']['id'] : null),
+      demandNoticeId: json['demandNoticeId'] ?? (json['demandNotice'] != null ? json['demandNotice']['id'] : null),
+      assessmentId: json['assessmentId'] ?? (json['assessment'] != null ? json['assessment']['id'] : null),
+      appealType: json['appealType'],
+      remarks: json['remarks'],
       appealNo: json['appealNo'] ?? json['caseNo'] ?? json['appealNumber'] ?? '',
       demandedAmount: (json['demandedAmount'] as num?)?.toDouble(),
       disputedAmount: (json['disputedAmount'] as num?)?.toDouble(),
@@ -1176,6 +1191,11 @@ class Appeal {
       'status': status,
       'description': description,
       'hearingDate': hearingDate,
+      'auditCaseId': auditCaseId,
+      'demandNoticeId': demandNoticeId,
+      'assessmentId': assessmentId,
+      'appealType': appealType,
+      'remarks': remarks,
       'appealNo': appealNo,
       'demandedAmount': demandedAmount,
       'disputedAmount': disputedAmount,
@@ -1418,3 +1438,64 @@ class VatReturn {
     };
   }
 }
+
+class AppealDocument {
+  final int id;
+  final int appealId;
+  final String? fileName;
+  final String originalFileName;
+  final String? fileType;
+  final int? fileSize;
+  final String? description;
+  final String? uploadedBy;
+  final String? uploadedByName;
+  final String? uploadedAt;
+  final String? downloadUrl;
+
+  AppealDocument({
+    required this.id,
+    required this.appealId,
+    this.fileName,
+    required this.originalFileName,
+    this.fileType,
+    this.fileSize,
+    this.description,
+    this.uploadedBy,
+    this.uploadedByName,
+    this.uploadedAt,
+    this.downloadUrl,
+  });
+
+  factory AppealDocument.fromJson(Map<String, dynamic> json) {
+    return AppealDocument(
+      id: json['id'] ?? 0,
+      appealId: json['appealId'] ?? 0,
+      fileName: json['fileName'],
+      originalFileName: json['originalFileName'] ?? '',
+      fileType: json['fileType'],
+      fileSize: json['fileSize'] != null ? (json['fileSize'] as num).toInt() : null,
+      description: json['description'],
+      uploadedBy: json['uploadedBy'],
+      uploadedByName: json['uploadedByName'],
+      uploadedAt: json['uploadedAt'],
+      downloadUrl: json['downloadUrl'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'appealId': appealId,
+      'fileName': fileName,
+      'originalFileName': originalFileName,
+      'fileType': fileType,
+      'fileSize': fileSize,
+      'description': description,
+      'uploadedBy': uploadedBy,
+      'uploadedByName': uploadedByName,
+      'uploadedAt': uploadedAt,
+      'downloadUrl': downloadUrl,
+    };
+  }
+}
+

@@ -6,8 +6,25 @@ import '../../../providers/portal_provider.dart';
 import '../../../data/models/portal_records.dart';
 import '../../widgets/portal_shell.dart';
 
-class AuditsScreen extends StatelessWidget {
+class AuditsScreen extends StatefulWidget {
   const AuditsScreen({Key? key}) : super(key: key);
+
+  @override
+  State<AuditsScreen> createState() => _AuditsScreenState();
+}
+
+class _AuditsScreenState extends State<AuditsScreen> {
+  final TextEditingController _searchCtrl = TextEditingController();
+  String _searchQuery = '';
+  String _selectedFilter = 'ALL'; // 'ALL', 'ACTION', 'ACTIVE', 'CLOSED'
+  int _currentPage = 1;
+  static const int _pageSize = 5;
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   String _formatAmount(double? amt) {
     if (amt == null || amt == 0.0) return '৳ 0';
@@ -92,24 +109,186 @@ class AuditsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final portalProv = Provider.of<PortalProvider>(context);
+    final audits = portalProv.audits;
+
+    // ── KPI calculations ──────────────────────────────────────────────────
+    final totalCases = audits.length;
+    final actionRequiredCount = audits.where(_requiresAction).length;
+    final totalOutstanding = audits.map((a) => a.demandAmount ?? 0.0).fold(0.0, (sum, val) => sum + val);
+
+    // ── Filtering Logic ───────────────────────────────────────────────────
+    final filteredAudits = audits.where((audit) {
+      // Search check
+      final matchesSearch = audit.caseNo.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          audit.auditType.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          audit.status.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          _getTaxTypeLabel(audit.taxType).toLowerCase().contains(_searchQuery.toLowerCase());
+
+      if (!matchesSearch) return false;
+
+      // Filter category check
+      if (_selectedFilter == 'ACTION') return _requiresAction(audit);
+      if (_selectedFilter == 'ACTIVE') return audit.status.toUpperCase() != 'CLOSED' && audit.status.toUpperCase() != 'PAID';
+      if (_selectedFilter == 'CLOSED') return audit.status.toUpperCase() == 'CLOSED' || audit.status.toUpperCase() == 'PAID';
+
+      return true;
+    }).toList();
+
+    // ── Pagination Logic ──────────────────────────────────────────────────
+    final int totalPages = (filteredAudits.length / _pageSize).ceil();
+    if (_currentPage > totalPages && totalPages > 0) {
+      _currentPage = totalPages;
+    }
+    final int startIndex = (_currentPage - 1) * _pageSize;
+    final List<Audit> paginatedAudits = filteredAudits.skip(startIndex).take(_pageSize).toList();
 
     return PortalShell(
       breadcrumbs: const ['My Portal', 'Audits'],
       showBackButton: true,
-      body: portalProv.audits.isEmpty
-          ? const Center(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Title Header
+          Text(
+            'My Audits',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: Colors.teal.shade900,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'View and manage all active audit cases opened against your tax account.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // ── KPI CARDS ROW (Responsive Layout) ────────────────────────────────
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final bool isWide = constraints.maxWidth > 600;
+              final cards = [
+                _buildKPICard(
+                  title: 'Total Cases',
+                  value: '$totalCases',
+                  icon: Icons.folder_open,
+                  color: Colors.blue,
+                  isDark: isDark,
+                  width: isWide ? null : 150,
+                ),
+                _buildKPICard(
+                  title: 'Action Required',
+                  value: '$actionRequiredCount',
+                  icon: Icons.warning_amber_rounded,
+                  color: Colors.orange,
+                  isDark: isDark,
+                  width: isWide ? null : 150,
+                ),
+                _buildKPICard(
+                  title: 'Outstanding Fine',
+                  value: _formatAmount(totalOutstanding),
+                  icon: Icons.account_balance_wallet_outlined,
+                  color: Colors.red,
+                  isDark: isDark,
+                  width: isWide ? null : 150,
+                ),
+              ];
+
+              if (isWide) {
+                return Row(
+                  children: cards.map((card) => Expanded(child: card)).toList(),
+                );
+              } else {
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Row(children: cards),
+                );
+              }
+            },
+          ),
+          const SizedBox(height: 24),
+
+          // ── SEARCH BAR ────────────────────────────────────────────────────
+          TextField(
+            controller: _searchCtrl,
+            decoration: InputDecoration(
+              hintText: 'Search by case no, type, tax type...',
+              prefixIcon: const Icon(Icons.search, size: 20),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      onPressed: () {
+                        setState(() {
+                          _searchCtrl.clear();
+                          _searchQuery = '';
+                          _currentPage = 1;
+                        });
+                      },
+                    )
+                  : null,
+              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onChanged: (val) {
+              setState(() {
+                _searchQuery = val;
+                _currentPage = 1;
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // ── FILTER CHIPS ──────────────────────────────────────────────────
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildFilterChip('ALL', 'All Cases'),
+                _buildFilterChip('ACTION', 'Action Required'),
+                _buildFilterChip('ACTIVE', 'Active'),
+                _buildFilterChip('CLOSED', 'Closed'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // ── AUDITS LIST ───────────────────────────────────────────────────
+          if (portalProv.isLoading)
+            const Center(
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 40),
-                child: Text('No active audit investigations found.'),
+                child: CircularProgressIndicator(),
               ),
             )
-          : ListView.builder(
+          else if (paginatedAudits.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+                child: Column(
+                  children: [
+                    Icon(Icons.search_off, size: 48, color: Colors.grey.shade400),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No audit cases match your criteria.',
+                      style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else ...[
+            ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: portalProv.audits.length,
+              itemCount: paginatedAudits.length,
               itemBuilder: (context, index) {
-                final audit = portalProv.audits[index];
+                final audit = paginatedAudits[index];
                 final reqAction = _requiresAction(audit);
                 final statusColor = _getStatusColor(audit.status);
 
@@ -122,53 +301,59 @@ class AuditsScreen extends StatelessWidget {
                       width: reqAction ? 1.5 : 1.0,
                     ),
                   ),
-                  elevation: 2,
+                  elevation: reqAction ? 2 : 1,
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Card Header
+                        // Card Header (Responsive text wrapping & spacing)
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.shade50,
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(color: Colors.blue.shade100),
-                                  ),
-                                  child: Text(
-                                    audit.caseNo,
-                                    style: TextStyle(
-                                      fontFamily: 'monospace',
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.blue.shade800,
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Flexible(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue.shade50,
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: Colors.blue.shade100),
+                                      ),
+                                      child: Text(
+                                        audit.caseNo,
+                                        style: TextStyle(
+                                          fontFamily: 'monospace',
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.blue.shade800,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade100,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    _getTypeLabel(audit.auditType),
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.grey.shade700,
-                                      fontWeight: FontWeight.w600,
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      _getTypeLabel(audit.auditType),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey.shade700,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
+                            const SizedBox(width: 12),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
@@ -187,7 +372,7 @@ class AuditsScreen extends StatelessWidget {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
 
                         // Action Warning Banner if required
                         if (reqAction) ...[
@@ -267,15 +452,13 @@ class AuditsScreen extends StatelessWidget {
                           ),
                         ],
 
-                        const SizedBox(height: 14),
-                        const Divider(),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 16),
 
-                        // Card Actions
+                        // Actions row
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            ElevatedButton.icon(
+                            OutlinedButton.icon(
                               onPressed: () {
                                 Navigator.pushNamed(
                                   context,
@@ -283,15 +466,13 @@ class AuditsScreen extends StatelessWidget {
                                   arguments: audit.id,
                                 );
                               },
-                              icon: const Icon(Icons.visibility, size: 16),
-                              label: const Text('View Details'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue.shade800,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
+                              icon: const Icon(Icons.visibility, size: 14),
+                              label: const Text('View Details', style: TextStyle(fontSize: 12)),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.primary,
+                                side: const BorderSide(color: AppColors.primary),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               ),
                             ),
                           ],
@@ -302,6 +483,134 @@ class AuditsScreen extends StatelessWidget {
                 );
               },
             ),
+            
+            // ── PAGINATION BAR ────────────────────────────────────────────────
+            if (totalPages > 1) ...[
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left),
+                    onPressed: _currentPage > 1
+                        ? () {
+                            setState(() {
+                              _currentPage--;
+                            });
+                          }
+                        : null,
+                  ),
+                  Text(
+                    'Page $_currentPage of $totalPages',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right),
+                    onPressed: _currentPage < totalPages
+                        ? () {
+                            setState(() {
+                              _currentPage++;
+                            });
+                          }
+                        : null,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKPICard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+    required bool isDark,
+    double? width = 150,
+  }) {
+    return Container(
+      width: width,
+      margin: const EdgeInsets.only(right: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : Colors.grey.shade200,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String value, String label) {
+    final isSelected = _selectedFilter == value;
+    return Container(
+      margin: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: isSelected,
+        onSelected: (selected) {
+          if (selected) {
+            setState(() {
+              _selectedFilter = value;
+              _currentPage = 1;
+            });
+          }
+        },
+      ),
     );
   }
 

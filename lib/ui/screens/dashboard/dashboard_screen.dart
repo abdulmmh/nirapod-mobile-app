@@ -415,7 +415,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     if (category.toLowerCase() == 'individual') {
       menuItems = [
-        {'label': 'My TIN Details', 'icon': Icons.badge_outlined, 'color': AppColors.primary, 'route': '/profile'},
+        {'label': 'My TIN Details', 'icon': Icons.badge_outlined, 'color': AppColors.primary, 'route': '/tin-details'},
         {'label': 'My Businesses', 'icon': Icons.storefront_outlined, 'color': Colors.indigo, 'route': '/businesses'},
         {'label': 'Income Tax Return', 'icon': Icons.description_outlined, 'color': Colors.orange, 'route': '/itr'},
         {'label': 'AIT Records', 'icon': Icons.receipt_long_outlined, 'color': Colors.purple, 'route': '/ait'},
@@ -426,7 +426,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ];
     } else if (category.toLowerCase() == 'business') {
       menuItems = [
-        {'label': 'My TIN Details', 'icon': Icons.badge_outlined, 'color': AppColors.primary, 'route': '/profile'},
+        {'label': 'My TIN Details', 'icon': Icons.badge_outlined, 'color': AppColors.primary, 'route': '/tin-details'},
         {'label': 'My Businesses', 'icon': Icons.storefront_outlined, 'color': Colors.indigo, 'route': '/businesses'},
         {'label': 'Income Tax Return', 'icon': Icons.description_outlined, 'color': Colors.orange, 'route': '/itr'},
         {'label': 'AIT Records', 'icon': Icons.receipt_long_outlined, 'color': Colors.purple, 'route': '/ait'},
@@ -439,7 +439,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ];
     } else {
       menuItems = [
-        {'label': 'My TIN Details', 'icon': Icons.badge_outlined, 'color': AppColors.primary, 'route': '/profile'},
+        {'label': 'My TIN Details', 'icon': Icons.badge_outlined, 'color': AppColors.primary, 'route': '/tin-details'},
         {'label': 'Income Tax Return', 'icon': Icons.description_outlined, 'color': Colors.orange, 'route': '/itr'},
         {'label': 'Payments', 'icon': Icons.payment_outlined, 'color': Colors.green, 'route': '/payments'},
         {'label': 'Official Notices', 'icon': Icons.campaign_outlined, 'color': Colors.red, 'route': '/notices'},
@@ -470,7 +470,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: InkWell(
             onTap: () => Navigator.pushNamed(context, item['route']),
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -487,7 +487,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       size: 24,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 6),
                   Text(
                     item['label'],
                     textAlign: TextAlign.center,

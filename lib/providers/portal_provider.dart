@@ -709,14 +709,134 @@ class PortalProvider extends ChangeNotifier {
       }
     } catch (_) {
       final mockNew = Appeal(
-        id: _appeals.length + 1,
+        id: _appeals.length + 700,
         taxpayerId: appeal.taxpayerId,
         caseNo: appeal.caseNo,
         status: 'Filed',
-        description: appeal.description,
+        description: appeal.description ?? appeal.groundsText,
+        appealNo: appeal.appealNo ?? 'APPEAL-${DateTime.now().year}-${100 + _appeals.length}',
+        demandedAmount: appeal.demandedAmount,
+        disputedAmount: appeal.disputedAmount,
+        acceptedAmount: appeal.acceptedAmount ?? 0.0,
+        reliefGranted: appeal.reliefGranted ?? 0.0,
+        groundsText: appeal.groundsText ?? appeal.description,
+        reliefSought: appeal.reliefSought,
+        filedAt: appeal.filedAt ?? DateTime.now().toIso8601String().substring(0, 10),
+        deadline: appeal.deadline ?? DateTime.now().add(const Duration(days: 45)).toIso8601String().substring(0, 10),
         hearingDate: 'TBD',
       );
       _appeals.insert(0, mockNew);
+    }
+
+    _isLoading = false;
+    notifyListeners();
+    return true;
+  }
+
+  Future<List<AppealDocument>> getAppealDocuments(int appealId) async {
+    if (_appealDocsCache.containsKey(appealId)) {
+      return _appealDocsCache[appealId]!;
+    }
+    try {
+      final r = await apiClient.get('/my-portal/appeals/$appealId/documents');
+      if (r.data != null) {
+        final list = (r.data as List).map((x) => AppealDocument.fromJson(x)).toList();
+        _appealDocsCache[appealId] = list;
+        return list;
+      }
+    } catch (_) {}
+
+    // Fallback to empty mock list by default
+    _appealDocsCache[appealId] = [];
+    return [];
+  }
+
+  Future<bool> uploadAppealDocument(int appealId, String filename, String description) async {
+    try {
+      await apiClient.post('/my-portal/appeals/$appealId/documents', data: {
+        'fileName': filename,
+        'description': description,
+      });
+    } catch (_) {}
+
+    // Update locally in mock cache
+    if (!_appealDocsCache.containsKey(appealId)) {
+      _appealDocsCache[appealId] = [];
+    }
+    final newDoc = AppealDocument(
+      id: _appealDocsCache[appealId]!.length + 1,
+      appealId: appealId,
+      originalFileName: filename,
+      description: description.isNotEmpty ? description : null,
+      fileSize: 1024 * 342, // Mock 342 KB
+      fileType: filename.split('.').last.toLowerCase(),
+      uploadedBy: _currentTaxpayerName ?? 'Tasrif Zaman',
+      uploadedByName: _currentTaxpayerName ?? 'Tasrif Zaman',
+      uploadedAt: DateTime.now().toIso8601String().substring(0, 10),
+    );
+    _appealDocsCache[appealId]!.insert(0, newDoc);
+    notifyListeners();
+    return true;
+  }
+
+  Future<bool> deleteAppealDocument(int appealId, int docId) async {
+    try {
+      await apiClient.delete('/my-portal/appeals/$appealId/documents/$docId');
+    } catch (_) {}
+
+    if (_appealDocsCache.containsKey(appealId)) {
+      _appealDocsCache[appealId]!.removeWhere((d) => d.id == docId);
+      notifyListeners();
+    }
+    return true;
+  }
+
+  Future<bool> withdrawAppeal(int appealId, String reason) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final response = await apiClient.post(
+        '/my-portal/appeals/$appealId/withdraw',
+        data: reason.isNotEmpty ? {'reason': reason} : {},
+      );
+      if (response.data != null) {
+        final idx = _appeals.indexWhere((a) => a.id == appealId);
+        if (idx != -1) {
+          _appeals[idx] = Appeal.fromJson(response.data);
+        }
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+    } catch (_) {}
+
+    // Fallback/offline mock update
+    final idx = _appeals.indexWhere((a) => a.id == appealId);
+    if (idx != -1) {
+      final old = _appeals[idx];
+      _appeals[idx] = Appeal(
+        id: old.id,
+        taxpayerId: old.taxpayerId,
+        caseNo: old.caseNo,
+        status: 'WITHDRAWN',
+        description: old.description,
+        appealNo: old.appealNo,
+        demandedAmount: old.demandedAmount,
+        disputedAmount: old.disputedAmount,
+        acceptedAmount: 0.0,
+        reliefGranted: 0.0,
+        groundsText: old.groundsText,
+        reliefSought: old.reliefSought,
+        supportingEvidence: old.supportingEvidence,
+        filedAt: old.filedAt,
+        deadline: old.deadline,
+        decidedAt: old.decidedAt,
+        decidedBy: old.decidedBy,
+        decision: old.decision,
+        decisionNotes: old.decisionNotes,
+        demandNo: old.demandNo,
+      );
     }
 
     _isLoading = false;
@@ -1061,13 +1181,14 @@ class PortalProvider extends ChangeNotifier {
   // Audit details helpers
   final Map<int, List<AuditQuery>> _queriesCache = {};
   final Map<int, List<AuditDocumentRequest>> _docsCache = {};
+  final Map<int, List<AppealDocument>> _appealDocsCache = {};
 
   Future<List<AuditQuery>> getQueries(int caseId) async {
     if (_queriesCache.containsKey(caseId)) {
       return _queriesCache[caseId]!;
     }
     try {
-      final r = await apiClient.get('/my-portal/audits/$caseId/queries');
+      final r = await apiClient.get('/audits/$caseId/queries');
       if (r.data != null) {
         final list = (r.data as List).map((x) => AuditQuery.fromJson(x)).toList();
         _queriesCache[caseId] = list;
@@ -1120,7 +1241,7 @@ class PortalProvider extends ChangeNotifier {
       return _docsCache[caseId]!;
     }
     try {
-      final r = await apiClient.get('/my-portal/audits/$caseId/document-requests');
+      final r = await apiClient.get('/audits/$caseId/document-requests');
       if (r.data != null) {
         final list = (r.data as List).map((x) => AuditDocumentRequest.fromJson(x)).toList();
         _docsCache[caseId] = list;
@@ -1198,7 +1319,7 @@ class PortalProvider extends ChangeNotifier {
 
   Future<DemandNotice?> getMyDemandNotice(int caseId) async {
     try {
-      final r = await apiClient.get('/my-portal/audits/$caseId/demand');
+      final r = await apiClient.get('/my-portal/audits/$caseId/demand-notice');
       if (r.data != null) {
         return DemandNotice.fromJson(r.data);
       }
@@ -1263,7 +1384,7 @@ class PortalProvider extends ChangeNotifier {
     try {
       await apiClient.post('/my-portal/audits/$caseId/respond', data: {
         'documentRequestId': requestId,
-        'fulfillmentNotes': notes,
+        'responseText': notes,
       });
     } catch (_) {}
 
@@ -1311,6 +1432,7 @@ class PortalProvider extends ChangeNotifier {
         decision: 'PARTIALLY UPHELD',
         decidedBy: 'Tax Commissioner',
         decidedAt: '2026-06-16',
+        decisionNotes: 'After reviewing bank statements, BDT 25,000 represents non-taxable family transfers. Partial relief granted accordingly.',
         demandNo: 'DEM-2026-1395958B',
       ),
       Appeal(

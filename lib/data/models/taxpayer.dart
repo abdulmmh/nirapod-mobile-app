@@ -145,44 +145,100 @@ class TaxpayerType {
 
 class TinRecord {
   final int id;
-  final int taxpayerId;
   final String tinNumber;
-  final String? zone;
-  final String? circle;
+  final int taxpayerId;
+  final String? taxpayerName;
+  final String? tinCategory;
+  final String? nid;
+  final String? passportNo;
+  final String? dateOfBirth;
+  final String? gender;
+  final String? incorporationDate;
+  final String? email;
+  final String? phone;
+  final String? address;
+  final String? district;
+  final String? division;
+  final String? taxZone;
+  final String? taxCircle;
+  final String? issuedDate;
+  final String? lastUpdated;
   final String? status;
-  final String? issueDate;
+  final String? remarks;
 
   TinRecord({
     required this.id,
-    required this.taxpayerId,
     required this.tinNumber,
-    this.zone,
-    this.circle,
+    required this.taxpayerId,
+    this.taxpayerName,
+    this.tinCategory,
+    this.nid,
+    this.passportNo,
+    this.dateOfBirth,
+    this.gender,
+    this.incorporationDate,
+    this.email,
+    this.phone,
+    this.address,
+    this.district,
+    this.division,
+    this.taxZone,
+    this.taxCircle,
+    this.issuedDate,
+    this.lastUpdated,
     this.status,
-    this.issueDate,
+    this.remarks,
   });
 
   factory TinRecord.fromJson(Map<String, dynamic> json) {
     return TinRecord(
       id: json['id'] ?? 0,
-      taxpayerId: json['taxpayerId'] ?? 0,
       tinNumber: json['tinNumber'] ?? '',
-      zone: json['zone'],
-      circle: json['circle'],
+      taxpayerId: json['taxpayerId'] ?? 0,
+      taxpayerName: json['taxpayerName'],
+      tinCategory: json['tinCategory'],
+      nid: json['nid'],
+      passportNo: json['passportNo'],
+      dateOfBirth: json['dateOfBirth'],
+      gender: json['gender'],
+      incorporationDate: json['incorporationDate'],
+      email: json['email'],
+      phone: json['phone'],
+      address: json['address'],
+      district: json['district'],
+      division: json['division'],
+      taxZone: json['taxZone'] ?? json['zone'],
+      taxCircle: json['taxCircle'] ?? json['circle'],
+      issuedDate: json['issuedDate'] ?? json['issueDate'],
+      lastUpdated: json['lastUpdated'],
       status: json['status'],
-      issueDate: json['issueDate'],
+      remarks: json['remarks'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'taxpayerId': taxpayerId,
       'tinNumber': tinNumber,
-      'zone': zone,
-      'circle': circle,
+      'taxpayerId': taxpayerId,
+      'taxpayerName': taxpayerName,
+      'tinCategory': tinCategory,
+      'nid': nid,
+      'passportNo': passportNo,
+      'dateOfBirth': dateOfBirth,
+      'gender': gender,
+      'incorporationDate': incorporationDate,
+      'email': email,
+      'phone': phone,
+      'address': address,
+      'district': district,
+      'division': division,
+      'taxZone': taxZone,
+      'taxCircle': taxCircle,
+      'issuedDate': issuedDate,
+      'lastUpdated': lastUpdated,
       'status': status,
-      'issueDate': issueDate,
+      'remarks': remarks,
     };
   }
 }

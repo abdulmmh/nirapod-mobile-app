@@ -10,6 +10,7 @@ import 'ui/screens/business/business_screen.dart';
 import 'ui/screens/business/business_detail_screen.dart';
 import 'ui/screens/business/business_create_screen.dart';
 import 'ui/screens/tin/issue_tin_screen.dart';
+import 'ui/screens/tin/tin_details_screen.dart';
 import 'ui/screens/itr/itr_screen.dart';
 import 'ui/screens/ait/ait_screen.dart';
 import 'ui/screens/payments/payments_screen.dart';
@@ -46,6 +47,7 @@ class NirapodApp extends StatelessWidget {
         '/business-details': (context) => const BusinessDetailScreen(),
         '/business-create': (context) => const BusinessCreateScreen(),
         '/tin-create': (context) => const IssueTinScreen(),
+        '/tin-details': (context) => const TinDetailsScreen(),
         '/itr': (context) => const ItrScreen(),
         '/ait': (context) => const AitScreen(),
         '/payments': (context) => const PaymentsScreen(),

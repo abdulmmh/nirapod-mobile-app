@@ -144,7 +144,15 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
 
   String _formatCurrency(double? val) {
     if (val == null) return '৳ 0.00';
-    return NumberFormat.currency(locale: 'en_BD', symbol: '৳ ', decimalDigits: 2).format(val);
+    try {
+      return NumberFormat.currency(locale: 'en_BD', symbol: '৳ ', decimalDigits: 2).format(val);
+    } catch (_) {
+      try {
+        return NumberFormat.currency(symbol: '৳ ', decimalDigits: 2).format(val);
+      } catch (__) {
+        return '৳ ${val.toStringAsFixed(2)}';
+      }
+    }
   }
 
   bool _isOverdue(String? dateStr) {
@@ -238,40 +246,15 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
   }
 
   void _simulateFileAppeal(Audit audit, String refNo, double amount) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Row(
-            children: [
-              Icon(Icons.shield_outlined, color: AppColors.error),
-              const SizedBox(width: 10),
-              const Text('Integrate File Appeal'),
-            ],
-          ),
-          content: Text(
-            'This action will redirect you to file a legal appeal for the Demand Notice ($refNo) of BDT ${amount.toStringAsFixed(0)}.\n\nWould you like to simulate launching the Appeal Creation wizard?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Simulation: Launching Appeal Creation Wizard'),
-                    backgroundColor: AppColors.info,
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-              child: const Text('Proceed'),
-            ),
-          ],
-        );
+    Navigator.pushNamed(
+      context,
+      '/appeals',
+      arguments: {
+        'caseNo': audit.caseNo,
+        'auditCaseId': audit.id,
+        'assessmentNo': refNo,
+        'assessmentId': _assessment?.id,
+        'demandedAmount': amount,
       },
     );
   }
@@ -1484,7 +1467,9 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
             // Findings Summary
             _buildOrderSectionTitle('Findings Summary'),
             Text(
-              asm.findingsSummary ?? 'As per audit findings.',
+              (asm.findingsSummary != null && asm.findingsSummary!.isNotEmpty)
+                  ? asm.findingsSummary!
+                  : 'As per audit findings.',
               style: const TextStyle(fontSize: 13, height: 1.5),
             ),
             const SizedBox(height: 16),
@@ -1492,7 +1477,9 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
             // Legal Basis
             _buildOrderSectionTitle('Legal Basis'),
             Text(
-              asm.legalBasis ?? '—',
+              (asm.legalBasis != null && asm.legalBasis!.isNotEmpty)
+                  ? asm.legalBasis!
+                  : '—',
               style: const TextStyle(fontSize: 13, height: 1.5),
             ),
             const SizedBox(height: 16),
@@ -1507,6 +1494,13 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
                 1: FlexColumnWidth(1),
               },
               children: [
+                _buildOrderTableRow(
+                  'Description',
+                  'Amount (BDT)',
+                  isBold: true,
+                  bgColor: Colors.grey.shade50,
+                  textColor: Colors.grey.shade800,
+                ),
                 _buildOrderTableRow('Declared Tax', _formatCurrency(asm.declaredTax)),
                 _buildOrderTableRow('Assessed Tax', _formatCurrency(asm.assessedTax)),
                 _buildOrderTableRow(

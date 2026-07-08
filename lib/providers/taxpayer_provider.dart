@@ -6,10 +6,12 @@ import '../data/models/taxpayer.dart';
 
 class TaxpayerProvider extends ChangeNotifier {
   Taxpayer? _taxpayer;
+  TinRecord? _tinRecord;
   bool _isLoading = false;
   String? _errorMessage;
 
   Taxpayer? get taxpayer => _taxpayer;
+  TinRecord? get tinRecord => _tinRecord;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
@@ -28,6 +30,55 @@ class TaxpayerProvider extends ChangeNotifier {
     } catch (e) {
       print('Network request failed, loading mock taxpayer details: $e');
       _taxpayer = _getMockTaxpayer(taxpayerId, category);
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  // Fetch complete TIN record details for active taxpayer
+  Future<void> fetchTinRecord() async {
+    if (_taxpayer == null || _taxpayer!.tin == null || _taxpayer!.tin!.isEmpty) {
+      _tinRecord = null;
+      notifyListeners();
+      return;
+    }
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await apiClient.get(ApiEndpoints.tins);
+      if (response.data != null) {
+        if (response.data is List && (response.data as List).isNotEmpty) {
+          _tinRecord = TinRecord.fromJson(response.data[0]);
+        } else if (response.data is Map) {
+          _tinRecord = TinRecord.fromJson(response.data as Map<String, dynamic>);
+        }
+      }
+    } catch (e) {
+      print('Network request failed, loading mock TIN details: $e');
+      final tp = _taxpayer!;
+      _tinRecord = TinRecord(
+        id: 1,
+        tinNumber: tp.tin ?? 'TIN-000000005',
+        taxpayerId: tp.id,
+        taxpayerName: tp.companyName ?? tp.fullName ?? 'Tasrif Zaman',
+        tinCategory: tp.taxpayerType?.category ?? 'Individual',
+        nid: tp.nid ?? '1234567890',
+        dateOfBirth: tp.dateOfBirth ?? '2000-06-22',
+        gender: tp.gender ?? 'Male',
+        email: tp.email ?? 'tasrif@gmail.com',
+        phone: tp.phone ?? '01987262436',
+        address: tp.presentAddress?.details ?? 'Dhaka',
+        district: tp.presentAddress?.district ?? 'Dhaka',
+        division: tp.presentAddress?.division ?? 'Dhaka',
+        taxZone: 'Dhaka Tax Zone',
+        taxCircle: 'Dhaka Circle-1',
+        status: 'Active',
+        issuedDate: '2026-05-07',
+        lastUpdated: '2026-05-11',
+      );
     }
 
     _isLoading = false;
@@ -176,6 +227,26 @@ class TaxpayerProvider extends ChangeNotifier {
           authorizedPersonName: _taxpayer!.authorizedPersonName,
           authorizedPersonNid: _taxpayer!.authorizedPersonNid,
         );
+        _tinRecord = TinRecord(
+          id: response.data['id'] ?? 1,
+          tinNumber: generatedTin,
+          taxpayerId: _taxpayer!.id,
+          taxpayerName: _taxpayer!.companyName ?? _taxpayer!.fullName,
+          tinCategory: reqData['tinCategory'] ?? _taxpayer!.taxpayerType?.category ?? 'Individual',
+          nid: reqData['nid'] ?? _taxpayer!.nid,
+          dateOfBirth: reqData['dateOfBirth']?.toString() ?? _taxpayer!.dateOfBirth,
+          gender: reqData['gender'] ?? _taxpayer!.gender,
+          email: reqData['email'] ?? _taxpayer!.email,
+          phone: reqData['phone'] ?? _taxpayer!.phone,
+          address: reqData['address'] ?? _taxpayer!.presentAddress?.details,
+          district: reqData['district'] ?? _taxpayer!.presentAddress?.district,
+          division: reqData['division'] ?? _taxpayer!.presentAddress?.division,
+          taxZone: reqData['taxZone'] ?? 'Dhaka Tax Zone',
+          taxCircle: reqData['taxCircle'] ?? 'Dhaka Circle-1',
+          status: 'Active',
+          issuedDate: DateTime.now().toString().split(' ')[0],
+          lastUpdated: DateTime.now().toString().split(' ')[0],
+        );
         _isLoading = false;
         notifyListeners();
         return true;
@@ -208,6 +279,26 @@ class TaxpayerProvider extends ChangeNotifier {
         natureOfBusiness: _taxpayer!.natureOfBusiness,
         authorizedPersonName: _taxpayer!.authorizedPersonName,
         authorizedPersonNid: _taxpayer!.authorizedPersonNid,
+      );
+      _tinRecord = TinRecord(
+        id: 1,
+        tinNumber: mockTinNum,
+        taxpayerId: _taxpayer!.id,
+        taxpayerName: _taxpayer!.companyName ?? _taxpayer!.fullName,
+        tinCategory: reqData['tinCategory'] ?? _taxpayer!.taxpayerType?.category ?? 'Individual',
+        nid: reqData['nid'] ?? _taxpayer!.nid,
+        dateOfBirth: reqData['dateOfBirth']?.toString() ?? _taxpayer!.dateOfBirth,
+        gender: reqData['gender'] ?? _taxpayer!.gender,
+        email: reqData['email'] ?? _taxpayer!.email,
+        phone: reqData['phone'] ?? _taxpayer!.phone,
+        address: reqData['address'] ?? _taxpayer!.presentAddress?.details,
+        district: reqData['district'] ?? _taxpayer!.presentAddress?.district,
+        division: reqData['division'] ?? _taxpayer!.presentAddress?.division,
+        taxZone: reqData['taxZone'] ?? 'Dhaka Tax Zone',
+        taxCircle: reqData['taxCircle'] ?? 'Dhaka Circle-1',
+        status: 'Active',
+        issuedDate: DateTime.now().toString().split(' ')[0],
+        lastUpdated: DateTime.now().toString().split(' ')[0],
       );
     }
 
