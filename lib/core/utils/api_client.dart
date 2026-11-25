@@ -4,6 +4,7 @@ import 'storage_manager.dart';
 
 class ApiClient {
   late final Dio dio;
+  Future<void> Function(String token)? onSessionExpired;
 
   ApiClient() {
     dio = Dio(
@@ -25,29 +26,16 @@ class ApiClient {
           // Initialize StorageManager if needed
           await StorageManager.init();
           final token = StorageManager.getToken();
-          if (token != null && token.isNotEmpty) {
+          if (options.path != ApiEndpoints.login && token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
           
-          // Debug logs (can be replaced with logging package)
-          print('--> ${options.method} ${options.baseUrl}${options.path}');
-          if (options.data != null) {
-            print('Body: ${options.data}');
-          }
           return handler.next(options);
         },
-        onResponse: (response, handler) {
-          print('<-- ${response.statusCode} ${response.requestOptions.path}');
-          return handler.next(response);
-        },
-        onError: (DioException e, handler) {
-          print('<-- ERROR ${e.response?.statusCode} ${e.requestOptions.path}');
-          print('Error details: ${e.response?.data}');
-          
-          // Custom 401 Unauthorized handling if needed
-          if (e.response?.statusCode == 401) {
-            // Can trigger a logout or session expired event in the app
-            StorageManager.clearAll();
+        onError: (e, handler) async {
+          final header = e.requestOptions.headers['Authorization'];
+          if (e.response?.statusCode == 401 && header is String && header.startsWith('Bearer ')) {
+            await onSessionExpired?.call(header.substring(7));
           }
           return handler.next(e);
         },

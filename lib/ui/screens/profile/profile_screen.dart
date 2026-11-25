@@ -110,26 +110,11 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'You do not have a Taxpayer Identification Number registered yet. Click below to issue a new TIN instantly.',
+                    'You do not have a Taxpayer Identification Number registered yet. Your tax office can issue a TIN for this profile.',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
                   ),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/tin-create');
-                    },
-                    icon: const Icon(Icons.add_card_outlined),
-                    label: const Text('Issue TIN Now', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
+
                 ],
               ),
             ),
@@ -167,7 +152,7 @@ class ProfileScreen extends StatelessWidget {
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(10),
                             child: Image.network(
-                              '${ApiEndpoints.baseUrl.replaceAll('/api', '')}${taxpayer.photoPath}',
+                              '${ApiEndpoints.serverOrigin}${taxpayer.photoPath}',
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) =>
                                   const Icon(Icons.person, color: Colors.white, size: 36),

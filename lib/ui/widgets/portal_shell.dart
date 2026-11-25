@@ -27,7 +27,7 @@ class PortalShell extends StatelessWidget {
     final taxpayer = taxpayerProv.taxpayer;
     final user = auth.currentUser;
     
-    final String displayName = taxpayer?.fullName ?? taxpayer?.companyName ?? user?.fullName ?? 'Tasrif Zaman';
+    final String displayName = taxpayer?.fullName ?? taxpayer?.companyName ?? user?.fullName ?? '';
     final String taxpayerCategory = taxpayer?.taxpayerType?.category ?? user?.taxpayerType ?? 'Resident Individual';
     final activeRoute = ModalRoute.of(context)?.settings.name;
     final double screenWidth = MediaQuery.of(context).size.width;
@@ -158,7 +158,7 @@ class PortalShell extends StatelessWidget {
                                   radius: 18,
                                   backgroundColor: Colors.teal.shade700,
                                   backgroundImage: photoPath != null && photoPath.isNotEmpty
-                                      ? NetworkImage('${ApiEndpoints.baseUrl.replaceAll('/api', '')}$photoPath')
+                                      ? NetworkImage('${ApiEndpoints.serverOrigin}$photoPath')
                                       : null,
                                   child: photoPath == null || photoPath.isEmpty
                                       ? Text(
@@ -183,7 +183,6 @@ class PortalShell extends StatelessWidget {
                             tooltip: 'Logout',
                             onPressed: () async {
                               await auth.logout();
-                              if (context.mounted) Navigator.pushReplacementNamed(context, '/login');
                             },
                           ),
                       ],
@@ -306,6 +305,7 @@ class PortalShell extends StatelessWidget {
           Expanded(
             child: SingleChildScrollView(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   // Body Content Centered
                   Center(
@@ -482,7 +482,6 @@ class PortalShell extends StatelessWidget {
                   onTap: () async {
                     Navigator.pop(context);
                     await auth.logout();
-                    if (context.mounted) Navigator.pushReplacementNamed(context, '/login');
                   },
                 ),
               ],

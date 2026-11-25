@@ -1,3 +1,8 @@
+import 'dart:typed_data';
+import 'package:dio/dio.dart';
+import '../../../core/utils/api_client.dart';
+import 'package:file_picker/file_picker.dart';
+import '../../../core/utils/document_upload.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -23,7 +28,7 @@ class _AppealDetailScreenState extends State<AppealDetailScreen> {
   bool _uploading = false;
   bool _withdrawing = false;
 
-  final List<String> _selectedFiles = [];
+  final List<PlatformFile> _selectedFiles = [];
   final TextEditingController _uploadNoteController = TextEditingController();
   final TextEditingController _withdrawReasonController = TextEditingController();
 
@@ -90,6 +95,20 @@ class _AppealDetailScreenState extends State<AppealDetailScreen> {
     }
   }
 
+  Future<void> _downloadDocument(AppealDocument document) async {
+    try {
+      final response = await apiClient.dio.get<List<int>>(
+        '/my-portal/appeals/$_appealId/documents/${document.id}/download',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      if (!mounted) return;
+      await FilePicker.saveFile(fileName: document.originalFileName,
+          bytes: Uint8List.fromList(response.data!));
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not save this document.')));
+    }
+  }
+
   bool _canUpload(Appeal appeal) {
     final s = appeal.status.toUpperCase();
     return !['DECIDED', 'CLOSED', 'WITHDRAWN'].contains(s);
@@ -100,39 +119,18 @@ class _AppealDetailScreenState extends State<AppealDetailScreen> {
     return ['FILED', 'UNDER_REVIEW'].contains(s);
   }
 
-  void _showSimulateFilePicker() {
-    final mockFiles = [
-      'Salary_Receipt_Form16.pdf',
-      'Bank_Statement_NonTaxable_Transfers.pdf',
-      'Tax_Source_Challan_Copy.jpg',
-      'Family_Gift_Declaration.docx',
-    ];
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Simulated File Picker', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: mockFiles.map((filename) {
-              return ListTile(
-                leading: const Icon(Icons.insert_drive_file, color: Colors.blue),
-                title: Text(filename, style: const TextStyle(fontSize: 13)),
-                onTap: () {
-                  Navigator.pop(context);
-                  setState(() {
-                    if (!_selectedFiles.contains(filename)) {
-                      _selectedFiles.add(filename);
-                    }
-                  });
-                },
-              );
-            }).toList(),
-          ),
-        );
-      },
-    );
+  Future<void> _pickFiles() async {
+    try {
+      final files = await pickDocuments();
+      if (!mounted || files.isEmpty) return;
+      final selected = _selectedFiles;
+      final additions = files.where((f) => !selected.any((v) => v.path == f.path)).toList();
+      setState(() => selected.addAll(additions));
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(error is FormatException ? error.message : 'Could not open the selected files.'),
+      ));
+    }
   }
 
   IconData _getFileIcon(String? type) {
@@ -386,6 +384,7 @@ class _AppealDetailScreenState extends State<AppealDetailScreen> {
     }
 
     final decision = appeal.decision?.toUpperCase() ?? '';
+    final isMobile = MediaQuery.of(context).size.width < 600;
 
     if (decision == 'DISMISSED') {
       return Card(
@@ -398,9 +397,12 @@ class _AppealDetailScreenState extends State<AppealDetailScreen> {
         margin: const EdgeInsets.only(bottom: 16),
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(
+          child: Flex(
+            direction: isMobile ? Axis.vertical : Axis.horizontal,
+            crossAxisAlignment: isMobile ? CrossAxisAlignment.stretch : CrossAxisAlignment.center,
             children: [
               Expanded(
+                flex: isMobile ? 0 : 1,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -420,7 +422,7 @@ class _AppealDetailScreenState extends State<AppealDetailScreen> {
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(height: isMobile ? 12 : 0, width: isMobile ? 0 : 12),
               ElevatedButton.icon(
                 onPressed: () => _simulatePaymentRedirect(context, appeal.demandedAmount, appeal.appealNo ?? appeal.caseNo),
                 icon: const Icon(Icons.payment, size: 16),
@@ -449,9 +451,12 @@ class _AppealDetailScreenState extends State<AppealDetailScreen> {
         margin: const EdgeInsets.only(bottom: 16),
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(
+          child: Flex(
+            direction: isMobile ? Axis.vertical : Axis.horizontal,
+            crossAxisAlignment: isMobile ? CrossAxisAlignment.stretch : CrossAxisAlignment.center,
             children: [
               Expanded(
+                flex: isMobile ? 0 : 1,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -471,7 +476,7 @@ class _AppealDetailScreenState extends State<AppealDetailScreen> {
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(height: isMobile ? 12 : 0, width: isMobile ? 0 : 12),
               ElevatedButton.icon(
                 onPressed: () => _simulatePaymentRedirect(context, appeal.acceptedAmount, appeal.appealNo ?? appeal.caseNo),
                 icon: const Icon(Icons.payment, size: 16),
@@ -900,10 +905,9 @@ class _AppealDetailScreenState extends State<AppealDetailScreen> {
                     ),
                     const Divider(height: 24),
 
-                    // File picker simulation if allowed
                     if (_canUpload(appeal)) ...[
                       InkWell(
-                        onTap: _uploading ? null : _showSimulateFilePicker,
+                        onTap: _uploading ? null : _pickFiles,
                         child: Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
@@ -916,9 +920,9 @@ class _AppealDetailScreenState extends State<AppealDetailScreen> {
                             children: [
                               Icon(Icons.cloud_upload_outlined, color: Colors.blue.shade700, size: 32),
                               const SizedBox(height: 8),
-                              const Text('Click to pick mock files to upload', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                              const Text('Choose documents', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
                               const SizedBox(height: 2),
-                              Text('PDF, JPG, PNG, XLSX — max 10MB each', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                              Text('PDF, images, Word or Excel — max 5 MB each', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
                             ],
                           ),
                         ),
@@ -929,7 +933,7 @@ class _AppealDetailScreenState extends State<AppealDetailScreen> {
                         const SizedBox(height: 10),
                         ..._selectedFiles.asMap().entries.map((entry) {
                           final idx = entry.key;
-                          final name = entry.value;
+                          final name = entry.value.name;
                           return Container(
                             margin: const EdgeInsets.only(bottom: 4),
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -943,7 +947,7 @@ class _AppealDetailScreenState extends State<AppealDetailScreen> {
                                 ),
                                 const SizedBox(width: 8),
                                 InkWell(
-                                  onTap: () {
+                                  onTap: _uploading ? null : () {
                                     setState(() {
                                       _selectedFiles.removeAt(idx);
                                     });
@@ -980,30 +984,20 @@ class _AppealDetailScreenState extends State<AppealDetailScreen> {
                                 setState(() => _uploading = true);
                                 final provider = Provider.of<PortalProvider>(context, listen: false);
 
-                                for (final file in _selectedFiles) {
-                                  await provider.uploadAppealDocument(
-                                    appeal.id,
-                                    file,
-                                    _uploadNoteController.text.trim().isNotEmpty
-                                        ? _uploadNoteController.text.trim()
-                                        : 'Supporting document: $file',
-                                  );
+                                final failed = <PlatformFile>[];
+                                for (final file in List.of(_selectedFiles)) {
+                                  if (!await provider.uploadAppealDocument(appeal.id, file, _uploadNoteController.text.trim())) failed.add(file);
                                 }
-
-                                if (mounted) {
-                                  setState(() {
-                                    _uploading = false;
-                                    _selectedFiles.clear();
-                                    _uploadNoteController.clear();
-                                    _loadDocuments(appeal.id);
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Documents uploaded successfully!'),
-                                        backgroundColor: AppColors.success,
-                                      ),
-                                    );
-                                  });
-                                }
+                                if (!mounted) return;
+                                setState(() {
+                                  _uploading = false;
+                                  _selectedFiles..clear()..addAll(failed);
+                                  if (failed.isEmpty) _uploadNoteController.clear();
+                                });
+                                _loadDocuments(appeal.id);
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(
+                                  failed.isEmpty ? 'Documents uploaded.' : 'Some uploads could not be confirmed. Refresh before retrying.',
+                                )));
                               },
                         icon: _uploading
                             ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
@@ -1065,11 +1059,7 @@ class _AppealDetailScreenState extends State<AppealDetailScreen> {
                               children: [
                                 IconButton(
                                   icon: const Icon(Icons.download, size: 18),
-                                  onPressed: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Downloading file: ${doc.originalFileName}')),
-                                    );
-                                  },
+                                  onPressed: () => _downloadDocument(doc),
                                 ),
                                 if (_canUpload(appeal))
                                   IconButton(

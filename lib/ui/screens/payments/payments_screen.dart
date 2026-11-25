@@ -451,13 +451,15 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
             if (_selectedStatus != 'All' || _statusFilter.isNotEmpty || _typeFilter.isNotEmpty || _yearFilter.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: Row(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
                       'Active Filters: ',
                       style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
                     ),
-                    const SizedBox(width: 8),
                     if (_selectedStatus != 'All')
                       _buildFilterChip(_selectedStatus, () => setState(() => _selectedStatus = 'All')),
                     if (_statusFilter.isNotEmpty)

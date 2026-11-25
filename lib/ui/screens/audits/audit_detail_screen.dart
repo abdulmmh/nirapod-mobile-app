@@ -1,3 +1,8 @@
+import 'dart:convert';
+import 'dart:typed_data';
+import '../../../core/utils/api_client.dart';
+import 'package:file_picker/file_picker.dart';
+import '../../../core/utils/document_upload.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -34,7 +39,7 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
   final Map<int, String?> _queryRespondingError = {};
   final Map<int, bool> _queryResponding = {};
 
-  final Map<int, List<String>> _selectedFiles = {};
+  final Map<int, List<PlatformFile>> _selectedFiles = {};
   final Map<int, TextEditingController> _uploadNoteControllers = {};
   final Map<int, bool> _uploading = {};
 
@@ -211,38 +216,16 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
     }
   }
 
-  // Simulations
-  void _simulateDownload(String type) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            Future.delayed(const Duration(milliseconds: 1500), () {
-              if (Navigator.canPop(context)) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(this.context).showSnackBar(
-                  SnackBar(
-                    content: Text('$type downloaded successfully to Downloads folder.'),
-                    backgroundColor: AppColors.success,
-                  ),
-                );
-              }
-            });
-            return AlertDialog(
-              content: Row(
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(width: 20),
-                  Text('Downloading $type...'),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
+  Future<void> _exportRecord(int id, String kind) async {
+    try {
+      final response = await apiClient.get('/my-portal/audits/$id/$kind');
+      if (response.data is! Map) throw const FormatException('Record unavailable');
+      if (!mounted) return;
+      await FilePicker.saveFile(fileName: '$kind-$id.json',
+          bytes: Uint8List.fromList(utf8.encode(const JsonEncoder.withIndent('  ').convert(response.data))));
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not export this record.')));
+    }
   }
 
   void _simulateFileAppeal(Audit audit, String refNo, double amount) {
@@ -312,57 +295,60 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: Colors.blue.shade100),
-                      ),
-                      child: Text(
-                        audit.caseNo,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue.shade800,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: Colors.blue.shade100),
+                        ),
+                        child: Text(
+                          audit.caseNo,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade800,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Audit Case Details',
-                      style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: [
-                        _buildMetaChip(Icons.bookmark_outline, _getTypeLabel(audit.auditType)),
-                        _buildMetaChip(Icons.calendar_today_outlined, audit.year),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: statusColor.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: statusColor.withOpacity(0.2)),
-                          ),
-                          child: Text(
-                            audit.status.replaceAll('_', ' '),
-                            style: TextStyle(
-                              color: statusColor,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
+                      const SizedBox(height: 6),
+                      Text(
+                        'Audit Case Details',
+                        style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          _buildMetaChip(Icons.bookmark_outline, _getTypeLabel(audit.auditType)),
+                          _buildMetaChip(Icons.calendar_today_outlined, audit.year),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: statusColor.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(color: statusColor.withOpacity(0.2)),
+                            ),
+                            child: Text(
+                              audit.status.replaceAll('_', ' '),
+                              style: TextStyle(
+                                color: statusColor,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 OutlinedButton.icon(
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.arrow_back, size: 16),
@@ -512,10 +498,11 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
             Card(
               margin: const EdgeInsets.only(bottom: 16),
               elevation: 1,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
+              child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                child: Row(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
                     _buildTabButton('overview', 'Details', Icons.info_outline),
                     _buildTabButton('queries', 'Queries', Icons.chat_bubble_outline,
@@ -560,59 +547,56 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
 
   Widget _buildTabButton(String tabKey, String title, IconData icon, {int? badgeCount}) {
     final isActive = _activeTab == tabKey;
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      child: ChoiceChip(
-        avatar: Icon(
-          icon,
-          size: 16,
-          color: isActive ? Colors.white : Colors.grey.shade700,
-        ),
-        label: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: isActive ? Colors.white : Colors.grey.shade900,
+    return ChoiceChip(
+      avatar: Icon(
+        icon,
+        size: 16,
+        color: isActive ? Colors.white : Colors.grey.shade700,
+      ),
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: isActive ? Colors.white : Colors.grey.shade900,
+            ),
+          ),
+          if (badgeCount != null) ...[
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: const BoxDecoration(
+                color: Colors.orange,
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                badgeCount.toString(),
+                style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ),
-            if (badgeCount != null) ...[
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: const BoxDecoration(
-                  color: Colors.orange,
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  badgeCount.toString(),
-                  style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
           ],
-        ),
-        selected: isActive,
-        selectedColor: Colors.blue.shade900,
-        backgroundColor: Colors.grey.shade100,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-          side: BorderSide(
-            color: isActive ? Colors.blue.shade900 : Colors.blue.shade100,
-          ),
-        ),
-        onSelected: (selected) {
-          if (selected) {
-            setState(() => _activeTab = tabKey);
-            if (tabKey == 'queries') _loadQueries(_auditId);
-            if (tabKey == 'documents') _loadDocRequests(_auditId);
-            if (tabKey == 'assessment') _loadAssessment(_auditId);
-            if (tabKey == 'demand') _loadDemand(_auditId);
-          }
-        },
+        ],
       ),
+      selected: isActive,
+      selectedColor: Colors.blue.shade900,
+      backgroundColor: Colors.grey.shade100,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: isActive ? Colors.blue.shade900 : Colors.blue.shade100,
+        ),
+      ),
+      onSelected: (selected) {
+        if (selected) {
+          setState(() => _activeTab = tabKey);
+          if (tabKey == 'queries') _loadQueries(_auditId);
+          if (tabKey == 'documents') _loadDocRequests(_auditId);
+          if (tabKey == 'assessment') _loadAssessment(_auditId);
+          if (tabKey == 'demand') _loadDemand(_auditId);
+        }
+      },
     );
   }
 
@@ -1098,7 +1082,10 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header properties
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -1108,7 +1095,6 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
                     style: TextStyle(fontFamily: 'monospace', fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blue.shade800),
                   ),
                 ),
-                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(4)),
@@ -1117,7 +1103,6 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
                     style: TextStyle(fontSize: 10, color: Colors.orange.shade800, fontWeight: FontWeight.bold),
                   ),
                 ),
-                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
@@ -1130,9 +1115,9 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
                     style: TextStyle(fontSize: 10, color: badgeColor, fontWeight: FontWeight.bold),
                   ),
                 ),
-                const Spacer(),
                 if (dr.deadline != null)
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.alarm, size: 12, color: Colors.grey.shade500),
                       const SizedBox(width: 4),
@@ -1173,12 +1158,18 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
             if (isFulfilled) ...[
               const SizedBox(height: 12),
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.check_circle, color: AppColors.success, size: 14),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 2),
+                    child: Icon(Icons.check_circle, color: AppColors.success, size: 14),
+                  ),
                   const SizedBox(width: 6),
-                  Text(
-                    'Fulfilled: ${dr.fulfillmentNotes ?? 'Documents submitted.'}',
-                    style: const TextStyle(fontSize: 12, color: AppColors.success, fontWeight: FontWeight.bold),
+                  Expanded(
+                    child: Text(
+                      'Fulfilled: ${dr.fulfillmentNotes ?? 'Documents submitted.'}',
+                      style: const TextStyle(fontSize: 12, color: AppColors.success, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ],
               ),
@@ -1200,12 +1191,8 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
                     const Text('Upload Documents', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
 
-                    // File picker simulation card
                     InkWell(
-                      onTap: () {
-                        // Show simulator files list choice
-                        _showSimulateFilePicker(dr.id);
-                      },
+                      onTap: isUploading ? null : () => _pickFiles(dr.id),
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
@@ -1218,9 +1205,9 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
                           children: [
                             Icon(Icons.cloud_upload_outlined, color: Colors.blue.shade700, size: 32),
                             const SizedBox(height: 8),
-                            const Text('Click to pick mock files to upload', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                            const Text('Choose documents', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
                             const SizedBox(height: 2),
-                            Text('PDF, JPG, PNG, XLSX — max 10MB each', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                            Text('PDF, images, Word or Excel — max 5 MB each', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
                           ],
                         ),
                       ),
@@ -1231,7 +1218,7 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
                       const SizedBox(height: 10),
                       ...fileList.asMap().entries.map((entry) {
                         final idx = entry.key;
-                        final name = entry.value;
+                        final name = entry.value.name;
                         return Container(
                           margin: const EdgeInsets.only(bottom: 4),
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -1245,7 +1232,7 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
                               ),
                               const SizedBox(width: 8),
                               InkWell(
-                                onTap: () {
+                                onTap: isUploading ? null : () {
                                   setState(() {
                                     fileList.removeAt(idx);
                                   });
@@ -1287,9 +1274,8 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
                               final success = await provider.uploadDocumentForRequest(
                                 caseId,
                                 dr.id,
-                                noteController.text.trim().isNotEmpty
-                                    ? '${noteController.text.trim()} (${fileList.join(", ")})'
-                                    : 'Uploaded: ${fileList.join(", ")}',
+                                List.of(fileList),
+                                noteController.text.trim(),
                               );
 
                               if (mounted) {
@@ -1307,6 +1293,8 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
                                         backgroundColor: AppColors.success,
                                       ),
                                     );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Upload could not be confirmed. Refresh before retrying.')));
                                   }
                                 });
                               }
@@ -1332,39 +1320,19 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
     );
   }
 
-  void _showSimulateFilePicker(int reqId) {
-    final mockFiles = [
-      'Bank_Statement_FY24_25.pdf',
-      'DPS_Rebate_Certificate.jpg',
-      'Form_16_TDS_Employer.pdf',
-      'Vat_Returns_Credit_Ledger.xlsx',
-    ];
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Simulated File Picker', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: mockFiles.map((filename) {
-              return ListTile(
-                leading: const Icon(Icons.insert_drive_file, color: Colors.blue),
-                title: Text(filename, style: const TextStyle(fontSize: 13)),
-                onTap: () {
-                  Navigator.pop(context);
-                  setState(() {
-                    if (!_selectedFiles[reqId]!.contains(filename)) {
-                      _selectedFiles[reqId]!.add(filename);
-                    }
-                  });
-                },
-              );
-            }).toList(),
-          ),
-        );
-      },
-    );
+  Future<void> _pickFiles(int reqId) async {
+    try {
+      final files = await pickDocuments();
+      if (!mounted || files.isEmpty) return;
+      final selected = _selectedFiles[reqId]!;
+      final additions = files.where((f) => !selected.any((v) => v.path == f.path)).toList();
+      if (selected.length + additions.length > 4) throw const FormatException('Choose up to four files.');
+      setState(() => selected.addAll(additions));
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(error is FormatException ? error.message : 'Could not open the selected files.'),
+      ));
+    }
   }
 
   // ── 4. ASSESSMENT ORDER VIEW ─────────────────────────────────────────────
@@ -1399,6 +1367,7 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
           children: [
             // Letterhead
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
                   width: 44,
@@ -1409,35 +1378,42 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.start,
+                    spacing: 16,
+                    runSpacing: 12,
                     children: [
-                      Text(
-                        'National Board of Revenue',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey.shade800),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'National Board of Revenue',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey.shade800),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            "Government of the People's Republic of Bangladesh",
+                            style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        "Government of the People's Republic of Bangladesh",
-                        style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'ASSESSMENT ORDER',
+                            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue.shade900, fontSize: 15, letterSpacing: 0.5),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Ref: ${asm.assessmentNo}',
+                            style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Colors.black87),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'ASSESSMENT ORDER',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue.shade900, fontSize: 15, letterSpacing: 0.5),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Ref: ${asm.assessmentNo}',
-                      style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Colors.black87),
-                    ),
-                  ],
                 ),
               ],
             ),
@@ -1547,9 +1523,11 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Footer info row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // Footer info wrap
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              spacing: 16,
+              runSpacing: 12,
               children: [
                 _buildOrderFooterItem('Payment Deadline', _formatShortDate(asm.paymentDeadline), isRed: true),
                 _buildOrderFooterItem('Approved By', asm.approvedBy ?? '—'),
@@ -1566,9 +1544,9 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
               runSpacing: 8,
               children: [
                 OutlinedButton.icon(
-                  onPressed: () => _simulateDownload('Assessment Order'),
+                  onPressed: () => _exportRecord(audit.id, 'assessment'),
                   icon: const Icon(Icons.download, size: 16),
-                  label: const Text('Download PDF'),
+                  label: const Text('Export assessment (JSON)'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.grey.shade800,
                     side: BorderSide(color: Colors.grey.shade300),
@@ -1777,7 +1755,7 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
                 crossAxisCount: MediaQuery.of(context).size.width < 600 ? 2 : 3,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                childAspectRatio: 2.5,
+                childAspectRatio: MediaQuery.of(context).size.width < 600 ? 1.6 : 2.5,
                 children: [
                   _buildDemandMetaItem('TAXPAYER', dm.taxpayerName ?? '—'),
                   _buildDemandMetaItem('TIN', dm.tinNumber ?? '—', isMonospace: true),
@@ -1829,9 +1807,9 @@ class _AuditDetailScreenState extends State<AuditDetailScreen> {
               runSpacing: 8,
               children: [
                 OutlinedButton.icon(
-                  onPressed: () => _simulateDownload('Demand Notice'),
+                  onPressed: () => _exportRecord(audit.id, 'demand-notice'),
                   icon: const Icon(Icons.download, size: 16),
-                  label: const Text('Download Notice'),
+                  label: const Text('Export notice (JSON)'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.grey.shade800,
                     side: BorderSide(color: Colors.grey.shade300),

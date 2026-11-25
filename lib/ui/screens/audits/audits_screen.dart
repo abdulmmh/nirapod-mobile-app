@@ -167,48 +167,47 @@ class _AuditsScreenState extends State<AuditsScreen> {
           ),
           const SizedBox(height: 20),
 
-          // ── KPI CARDS ROW (Responsive Layout) ────────────────────────────────
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final bool isWide = constraints.maxWidth > 600;
-              final cards = [
-                _buildKPICard(
-                  title: 'Total Cases',
-                  value: '$totalCases',
-                  icon: Icons.folder_open,
-                  color: Colors.blue,
-                  isDark: isDark,
-                  width: isWide ? null : 150,
-                ),
-                _buildKPICard(
-                  title: 'Action Required',
-                  value: '$actionRequiredCount',
-                  icon: Icons.warning_amber_rounded,
-                  color: Colors.orange,
-                  isDark: isDark,
-                  width: isWide ? null : 150,
-                ),
-                _buildKPICard(
-                  title: 'Outstanding Fine',
-                  value: _formatAmount(totalOutstanding),
-                  icon: Icons.account_balance_wallet_outlined,
-                  color: Colors.red,
-                  isDark: isDark,
-                  width: isWide ? null : 150,
-                ),
-              ];
+          // ── KPI CARDS GRID (Responsive Layout) ───────────────────────────────
+          Builder(
+            builder: (context) {
+              final screenWidth = MediaQuery.of(context).size.width;
+              final gridWidth = screenWidth.clamp(0.0, 1100.0);
+              final int crossAxisCount = screenWidth < 600 ? 2 : 3;
+              final double cardWidth = (gridWidth - 32 - (crossAxisCount - 1) * 12) / crossAxisCount;
+              final double cardHeight = screenWidth < 600 ? 85 : 75;
+              final double aspectRatio = cardWidth / cardHeight;
 
-              if (isWide) {
-                return Row(
-                  children: cards.map((card) => Expanded(child: card)).toList(),
-                );
-              } else {
-                return SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  child: Row(children: cards),
-                );
-              }
+              return GridView.count(
+                crossAxisCount: crossAxisCount,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: aspectRatio,
+                children: [
+                  _buildKPICard(
+                    title: 'Total Cases',
+                    value: '$totalCases',
+                    icon: Icons.folder_open,
+                    color: Colors.blue,
+                    isDark: isDark,
+                  ),
+                  _buildKPICard(
+                    title: 'Action Required',
+                    value: '$actionRequiredCount',
+                    icon: Icons.warning_amber_rounded,
+                    color: Colors.orange,
+                    isDark: isDark,
+                  ),
+                  _buildKPICard(
+                    title: 'Outstanding Fine',
+                    value: _formatAmount(totalOutstanding),
+                    icon: Icons.account_balance_wallet_outlined,
+                    color: Colors.red,
+                    isDark: isDark,
+                  ),
+                ],
+              );
             },
           ),
           const SizedBox(height: 24),
@@ -244,16 +243,15 @@ class _AuditsScreenState extends State<AuditsScreen> {
           const SizedBox(height: 16),
 
           // ── FILTER CHIPS ──────────────────────────────────────────────────
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildFilterChip('ALL', 'All Cases'),
-                _buildFilterChip('ACTION', 'Action Required'),
-                _buildFilterChip('ACTIVE', 'Active'),
-                _buildFilterChip('CLOSED', 'Closed'),
-              ],
-            ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildFilterChip('ALL', 'All Cases'),
+              _buildFilterChip('ACTION', 'Action Required'),
+              _buildFilterChip('ACTIVE', 'Active'),
+              _buildFilterChip('CLOSED', 'Closed'),
+            ],
           ),
           const SizedBox(height: 16),
 
@@ -530,11 +528,10 @@ class _AuditsScreenState extends State<AuditsScreen> {
     required IconData icon,
     required Color color,
     required bool isDark,
-    double? width = 150,
+    double? width,
   }) {
     return Container(
       width: width,
-      margin: const EdgeInsets.only(right: 14),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: isDark ? AppColors.surfaceDark : Colors.white,

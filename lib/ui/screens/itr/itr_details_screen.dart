@@ -264,7 +264,7 @@ class _ItrDetailsScreenState extends State<ItrDetailsScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          itr.taxpayerName ?? 'Tasrif Zaman',
+          itr.taxpayerName ?? '',
           style: theme.textTheme.headlineSmall?.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.bold,

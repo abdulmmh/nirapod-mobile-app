@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+import 'session_data_provider.dart';
 import 'package:dio/dio.dart';
 import '../core/constants/api_endpoints.dart';
 import '../core/utils/api_client.dart';
 import '../data/models/taxpayer.dart';
 
-class TaxpayerProvider extends ChangeNotifier {
+class TaxpayerProvider extends SessionDataProvider {
   Taxpayer? _taxpayer;
   TinRecord? _tinRecord;
   bool _isLoading = false;
@@ -27,9 +27,8 @@ class TaxpayerProvider extends ChangeNotifier {
       if (response.data != null) {
         _taxpayer = Taxpayer.fromJson(response.data);
       }
-    } catch (e) {
-      print('Network request failed, loading mock taxpayer details: $e');
-      _taxpayer = _getMockTaxpayer(taxpayerId, category);
+    } catch (_) {
+      _errorMessage = 'Could not refresh the taxpayer profile.';
     }
 
     _isLoading = false;
@@ -48,6 +47,7 @@ class TaxpayerProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      _tinRecord = null;
       final response = await apiClient.get(ApiEndpoints.tins);
       if (response.data != null) {
         if (response.data is List && (response.data as List).isNotEmpty) {
@@ -56,29 +56,8 @@ class TaxpayerProvider extends ChangeNotifier {
           _tinRecord = TinRecord.fromJson(response.data as Map<String, dynamic>);
         }
       }
-    } catch (e) {
-      print('Network request failed, loading mock TIN details: $e');
-      final tp = _taxpayer!;
-      _tinRecord = TinRecord(
-        id: 1,
-        tinNumber: tp.tin ?? 'TIN-000000005',
-        taxpayerId: tp.id,
-        taxpayerName: tp.companyName ?? tp.fullName ?? 'Tasrif Zaman',
-        tinCategory: tp.taxpayerType?.category ?? 'Individual',
-        nid: tp.nid ?? '1234567890',
-        dateOfBirth: tp.dateOfBirth ?? '2000-06-22',
-        gender: tp.gender ?? 'Male',
-        email: tp.email ?? 'tasrif@gmail.com',
-        phone: tp.phone ?? '01987262436',
-        address: tp.presentAddress?.details ?? 'Dhaka',
-        district: tp.presentAddress?.district ?? 'Dhaka',
-        division: tp.presentAddress?.division ?? 'Dhaka',
-        taxZone: 'Dhaka Tax Zone',
-        taxCircle: 'Dhaka Circle-1',
-        status: 'Active',
-        issuedDate: '2026-05-07',
-        lastUpdated: '2026-05-11',
-      );
+    } catch (_) {
+      _errorMessage = 'Could not refresh the TIN record.';
     }
 
     _isLoading = false;
@@ -179,13 +158,11 @@ class TaxpayerProvider extends ChangeNotifier {
         return true;
       }
     } catch (_) {
-      // Offline fallback: Update local state
-      _taxpayer = updated;
+      _errorMessage = 'Could not confirm the server response.';
     }
-
     _isLoading = false;
     notifyListeners();
-    return true;
+    return false;
   }
 
   // Issue TIN
@@ -198,7 +175,8 @@ class TaxpayerProvider extends ChangeNotifier {
     try {
       final response = await apiClient.post(ApiEndpoints.tins, data: reqData);
       if (response.data != null) {
-        final generatedTin = response.data['tinNumber']?.toString() ?? 'TIN-000000005';
+        final generatedTin = response.data['tinNumber']?.toString();
+        if (generatedTin == null || generatedTin.isEmpty) throw const FormatException('Missing issued TIN');
         
         // Update local taxpayer
         _taxpayer = Taxpayer(
@@ -252,59 +230,11 @@ class TaxpayerProvider extends ChangeNotifier {
         return true;
       }
     } catch (_) {
-      // Offline fallback: Mock a TIN
-      final String mockTinNum = 'TIN-000000005';
-      _taxpayer = Taxpayer(
-        id: _taxpayer!.id,
-        fullName: _taxpayer!.fullName,
-        companyName: _taxpayer!.companyName,
-        tin: mockTinNum,
-        nid: reqData['nid'] ?? _taxpayer!.nid,
-        dateOfBirth: reqData['dateOfBirth']?.toString() ?? _taxpayer!.dateOfBirth,
-        gender: reqData['gender'] ?? _taxpayer!.gender,
-        phone: reqData['phone'] ?? _taxpayer!.phone,
-        email: reqData['email'] ?? _taxpayer!.email,
-        profession: _taxpayer!.profession,
-        fathersName: _taxpayer!.fathersName,
-        mothersName: _taxpayer!.mothersName,
-        presentAddress: Address(
-          division: reqData['division'] ?? _taxpayer!.presentAddress?.division,
-          district: reqData['district'] ?? _taxpayer!.presentAddress?.district,
-          details: reqData['address'] ?? _taxpayer!.presentAddress?.details,
-        ),
-        photoPath: _taxpayer!.photoPath,
-        approvalStatus: 'Approved',
-        taxpayerType: _taxpayer!.taxpayerType,
-        rjscNo: _taxpayer!.rjscNo,
-        natureOfBusiness: _taxpayer!.natureOfBusiness,
-        authorizedPersonName: _taxpayer!.authorizedPersonName,
-        authorizedPersonNid: _taxpayer!.authorizedPersonNid,
-      );
-      _tinRecord = TinRecord(
-        id: 1,
-        tinNumber: mockTinNum,
-        taxpayerId: _taxpayer!.id,
-        taxpayerName: _taxpayer!.companyName ?? _taxpayer!.fullName,
-        tinCategory: reqData['tinCategory'] ?? _taxpayer!.taxpayerType?.category ?? 'Individual',
-        nid: reqData['nid'] ?? _taxpayer!.nid,
-        dateOfBirth: reqData['dateOfBirth']?.toString() ?? _taxpayer!.dateOfBirth,
-        gender: reqData['gender'] ?? _taxpayer!.gender,
-        email: reqData['email'] ?? _taxpayer!.email,
-        phone: reqData['phone'] ?? _taxpayer!.phone,
-        address: reqData['address'] ?? _taxpayer!.presentAddress?.details,
-        district: reqData['district'] ?? _taxpayer!.presentAddress?.district,
-        division: reqData['division'] ?? _taxpayer!.presentAddress?.division,
-        taxZone: reqData['taxZone'] ?? 'Dhaka Tax Zone',
-        taxCircle: reqData['taxCircle'] ?? 'Dhaka Circle-1',
-        status: 'Active',
-        issuedDate: DateTime.now().toString().split(' ')[0],
-        lastUpdated: DateTime.now().toString().split(' ')[0],
-      );
+      _errorMessage = 'Could not confirm the server response.';
     }
-
     _isLoading = false;
     notifyListeners();
-    return true;
+    return false;
   }
 
   // Upload profile photo
@@ -360,56 +290,4 @@ class TaxpayerProvider extends ChangeNotifier {
     return false;
   }
 
-  // Load static mock details based on taxpayer category
-  Taxpayer _getMockTaxpayer(int id, String category) {
-    if (category.toLowerCase() == 'individual') {
-      return Taxpayer(
-        id: id,
-        fullName: 'Abdul Karim',
-        tin: '102345678912',
-        nid: '19952618293746',
-        dateOfBirth: '1995-10-12',
-        gender: 'Male',
-        phone: '01712345678',
-        email: 'taxpayer@example.com',
-        profession: 'Software Engineer',
-        fathersName: 'Abul Kalam',
-        mothersName: 'Sufia Begum',
-        presentAddress: Address(
-          division: 'Dhaka',
-          district: 'Dhaka',
-          details: 'Flat 4B, House 12, Road 5, Dhanmondi',
-        ),
-        photoPath: '', // Empty triggers incomplete field item
-        approvalStatus: 'Approved',
-        taxpayerType: TaxpayerType(
-          category: 'Individual',
-          typeName: 'Resident Individual',
-        ),
-      );
-    } else {
-      return Taxpayer(
-        id: id,
-        companyName: 'A.K. Traders Ltd.',
-        tin: '302485967154',
-        rjscNo: 'C-98765/2020',
-        natureOfBusiness: 'Trading and Distribution',
-        authorizedPersonName: 'Abdul Karim',
-        authorizedPersonNid: '19952618293746',
-        phone: '01812345678',
-        email: 'business@example.com',
-        presentAddress: Address(
-          division: 'Dhaka',
-          district: 'Dhaka',
-          details: 'Plot 45, Sector 7, Uttara',
-        ),
-        photoPath: '/uploads/profiles/business_avatar.png',
-        approvalStatus: 'Approved',
-        taxpayerType: TaxpayerType(
-          category: 'Business',
-          typeName: 'Private Limited Company',
-        ),
-      );
-    }
-  }
 }

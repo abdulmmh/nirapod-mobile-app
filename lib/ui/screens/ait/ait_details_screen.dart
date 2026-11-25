@@ -1,3 +1,8 @@
+import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
+import 'package:dio/dio.dart';
+import '../../../core/utils/api_client.dart';
+import '../../../core/utils/document_upload.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -19,8 +24,50 @@ class AitDetailsScreen extends StatefulWidget {
 
 class _AitDetailsScreenState extends State<AitDetailsScreen> {
   final _challanController = TextEditingController();
-  final _bankController = TextEditingController(text: 'Sonali Bank');
+  final _bankController = TextEditingController();
   bool _isSubmitting = false;
+  bool _uploading = false;
+  Map<String, dynamic>? _detail;
+  bool _detailFailed = false;
+  List<dynamic> get _documents => _detail?['documents'] ?? [];
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshDetail();
+  }
+
+  Future<void> _refreshDetail() async {
+    try {
+      final response = await apiClient.get('/ait-records/${widget.aitId}');
+      if (mounted) setState(() { _detail = response.data; _detailFailed = false; });
+    } catch (_) {
+      if (mounted) setState(() => _detailFailed = true);
+    }
+  }
+
+  Future<void> _uploadDocuments() async {
+    setState(() => _uploading = true);
+    try {
+      final files = await pickDocuments();
+      for (final file in files) {
+        await apiClient.post('/ait-records/${widget.aitId}/documents', data: FormData.fromMap({'file': await documentPart(file)}));
+      }
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Upload could not be confirmed. Check the document list.')));
+    } finally {
+      if (mounted) { setState(() => _uploading = false); await _refreshDetail(); }
+    }
+  }
+
+  Future<void> _saveDocument(Map doc) async {
+    try {
+      final bytes = await apiClient.dio.get<List<int>>('/ait-records/${widget.aitId}/documents/${doc["id"]}/download', options: Options(responseType: ResponseType.bytes));
+      if (mounted) await FilePicker.saveFile(fileName: doc['fileName'], bytes: Uint8List.fromList(bytes.data!));
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not save this document.')));
+    }
+  }
 
   @override
   void dispose() {
@@ -186,6 +233,7 @@ class _AitDetailsScreenState extends State<AitDetailsScreen> {
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (_detailFailed) TextButton(onPressed: _refreshDetail, child: const Text('Could not load AIT details. Retry')),
             // Header Row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -259,7 +307,7 @@ class _AitDetailsScreenState extends State<AitDetailsScreen> {
                               _buildSubmitRecordCard(ait),
                               const SizedBox(height: 16),
                             ],
-                            _buildAuditTrailCard(currentStep),
+                            _buildAuditTrailCard(),
                           ],
                         ),
                       ),
@@ -269,7 +317,7 @@ class _AitDetailsScreenState extends State<AitDetailsScreen> {
                         _buildSubmitRecordCard(ait),
                         const SizedBox(height: 16),
                       ],
-                      _buildAuditTrailCard(currentStep),
+                      _buildAuditTrailCard(),
                     ],
                   ],
                 );
@@ -455,11 +503,11 @@ class _AitDetailsScreenState extends State<AitDetailsScreen> {
       iconColor: AppColors.primary,
       child: Column(
         children: [
-          _buildInfoRow('Name', 'Tasrif Zaman'),
+          _buildInfoRow('Name', context.watch<AuthProvider>().currentUser?.fullName ?? '—'),
           _buildDivider(),
-          _buildInfoRow('TIN', 'TIN-000000005', isMono: true),
+          _buildInfoRow('TIN', context.watch<AuthProvider>().currentUser?.tinNumber ?? '—', isMono: true),
           _buildDivider(),
-          _buildInfoRow('Fiscal Year', '2025-26'),
+          _buildInfoRow('Fiscal Year', _detail?['fiscalYearName'] ?? '—'),
           _buildDivider(),
           _buildInfoRow('Submitted', _formatDate(ait.date)),
         ],
@@ -470,12 +518,8 @@ class _AitDetailsScreenState extends State<AitDetailsScreen> {
   // ── 3. AIT Record Card ──
   Widget _buildAitRecordCard(AitRecord ait, Map<String, dynamic> sourceInfo, Map<String, dynamic> statusInfo) {
     final isImport = ait.source.toUpperCase().contains('IMPORT');
-    // Calculate taxable value based on rate (simulated)
-    final rate = 5.0;
-    final taxableValue = (ait.amount * 100) / rate;
-
     return _buildCard(
-      title: 'AIT Record — AIT-202526-${ait.challanNo.isNotEmpty ? ait.id : "DRAFT"}',
+      title: _detail?['aitReferenceNo'] ?? 'AIT Record',
       subtitle: 'Source: ${_getSourceInfo(ait.source)['label']}',
       icon: Icons.receipt_long_outlined,
       iconColor: Colors.purple,
@@ -514,16 +558,16 @@ class _AitDetailsScreenState extends State<AitDetailsScreen> {
           ),
           _buildDivider(),
           if (isImport) ...[
-            _buildInfoRow('Import Duty Record', '1220091', isMono: true),
+            _buildInfoRow('Import Duty Record', _detail?['importDutyRecordId']?.toString() ?? '—', isMono: true),
             _buildDivider(),
-            _buildInfoRow('HS Code', '1020098', isMono: true),
+            _buildInfoRow('HS Code', _detail?['hsCode']?.toString() ?? '—', isMono: true),
           ] else ...[
-            _buildInfoRow('Deductor', 'Test Company'),
+            _buildInfoRow('Deductor', _detail?['deductorName']?.toString() ?? '—'),
           ],
           _buildDivider(),
-          _buildInfoRow('Taxable Value', NumberFormat.currency(locale: 'en_BD', symbol: '৳ ', decimalDigits: 2).format(taxableValue)),
+          _buildInfoRow('Taxable Value', _detail?['taxableValue']?.toString() ?? '—'),
           _buildDivider(),
-          _buildInfoRow('AIT Rate', '${rate.toStringAsFixed(0)}%'),
+          _buildInfoRow('AIT Rate', _detail?['aitRate'] == null ? '—' : '${_detail!["aitRate"]}%'),
           _buildDivider(),
           // Calculated AIT highlighted box
           Container(
@@ -551,7 +595,7 @@ class _AitDetailsScreenState extends State<AitDetailsScreen> {
               children: [
                 const Text('Approved AIT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.green)),
                 Text(
-                  NumberFormat.currency(locale: 'en_BD', symbol: '৳ ', decimalDigits: 2).format(ait.amount),
+                  _detail?['approvedAitAmount']?.toString() ?? '—',
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.green),
                 ),
               ],
@@ -563,85 +607,24 @@ class _AitDetailsScreenState extends State<AitDetailsScreen> {
   }
 
   // ── 4. Challan Verification Card ──
-  Widget _buildChallanVerificationCard(AitRecord ait) {
-    return _buildCard(
-      title: 'Challan Verification',
-      subtitle: 'Treasury payment proof',
-      icon: Icons.check_circle_outline,
-      iconColor: Colors.teal,
-      badge: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: const Color(0xFFDCFCE7),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: const [
-            Icon(Icons.check, size: 10, color: Color(0xFF166534)),
-            SizedBox(width: 4),
-            Text(
-              'Verified',
-              style: TextStyle(color: Color(0xFF166534), fontWeight: FontWeight.bold, fontSize: 10),
-            ),
-          ],
-        ),
-      ),
-      child: Column(
-        children: [
-          _buildInfoRow('Challan No.', ait.challanNo, isMono: true),
-          _buildDivider(),
-          _buildInfoRow('Bank', 'Sonali Bank'),
-        ],
-      ),
-    );
-  }
+  Widget _buildChallanVerificationCard(AitRecord ait) => _buildCard(
+    title: 'Challan Verification', subtitle: 'Treasury payment proof', icon: Icons.receipt_outlined, iconColor: Colors.teal,
+    child: Column(children: [
+      _buildInfoRow('Challan No.', ait.challanNo),
+      _buildInfoRow('Bank', _detail?['bankName'] ?? '—'),
+      _buildInfoRow('Verified', _detail == null ? '—' : _detail!['challanVerified'] == true ? 'Yes' : 'No'),
+    ]),
+  );
 
   // ── 5. Supporting Documents Card ──
-  Widget _buildSupportingDocsCard() {
-    return _buildCard(
-      title: 'Supporting Documents',
-      subtitle: 'Uploaded proof attachments',
-      icon: Icons.attach_file_outlined,
-      iconColor: Colors.grey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('1 file(s) uploaded', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.insert_drive_file, color: AppColors.primary, size: 20),
-                    const SizedBox(width: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text('new-card.png', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                        Text('142 KB', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                      ],
-                    ),
-                  ],
-                ),
-                IconButton(
-                  icon: const Icon(Icons.download, size: 18),
-                  onPressed: () {},
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildSupportingDocsCard() => _buildCard(
+    title: 'Supporting Documents', subtitle: 'Uploaded proof attachments', icon: Icons.attach_file, iconColor: Colors.teal,
+    child: Column(children: [
+      if (_detail != null && _documents.isEmpty) const Text('No documents uploaded.'),
+      for (final doc in _documents) ListTile(title: Text(doc['fileName'] ?? 'Document'), trailing: IconButton(icon: const Icon(Icons.download), onPressed: () => _saveDocument(doc))),
+      if (_detail?['status'] == 'DRAFT') TextButton.icon(onPressed: _uploading ? null : _uploadDocuments, icon: const Icon(Icons.upload), label: const Text('Upload documents')),
+    ]),
+  );
 
   // ── 6. Submit Record Sidebar Card ──
   Widget _buildSubmitRecordCard(AitRecord ait) {
@@ -683,13 +666,21 @@ class _AitDetailsScreenState extends State<AitDetailsScreen> {
             icon: Icons.send,
             isLoading: _isSubmitting,
             onPressed: () async {
+              if (_documents.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Upload a document before submitting.')));
+                return;
+              }
               setState(() => _isSubmitting = true);
               // Submit Draft AIT record
               final success = await Provider.of<PortalProvider>(context, listen: false).submitAit(
                 ait.id,
-                _challanController.text.isNotEmpty ? _challanController.text : 'CH-${DateTime.now().millisecond}',
+                _challanController.text.trim(), _bankController.text.trim(),
+                _documents.map((doc) => doc['id'] as int).toList(),
               );
+              if (!mounted) return;
               setState(() => _isSubmitting = false);
+              if (success) await _refreshDetail();
+              if (!success && mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Submission could not be confirmed.')));
               if (success && mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('AIT Record submitted successfully!'), backgroundColor: AppColors.success),
@@ -710,116 +701,15 @@ class _AitDetailsScreenState extends State<AitDetailsScreen> {
   }
 
   // ── 7. Audit Trail Card ──
-  Widget _buildAuditTrailCard(int activeStep) {
-    final List<Map<String, dynamic>> auditEvents = [
-      {
-        'title': 'DRAFT',
-        'user': 'Tasrif Zaman',
-        'time': '23 Jun 2026, 09:49',
-        'desc': 'AIT record created as draft',
-        'step': 1,
-      },
-      {
-        'title': 'DRAFT → SUBMITTED',
-        'user': 'Tasrif Zaman',
-        'time': '23 Jun 2026, 09:49',
-        'desc': 'Submitted by taxpayer',
-        'step': 2,
-      },
-      {
-        'title': 'SUBMITTED → PENDING',
-        'user': 'Tax Officer',
-        'time': '15 Jun 2026, 03:23',
-        'desc': 'Challan verified by officer: officer@vattax.gov.bd',
-        'step': 3,
-      },
-      {
-        'title': 'PENDING → UNDER_REVIEW',
-        'user': 'Tax Officer',
-        'time': '15 Jun 2026, 03:25',
-        'desc': 'Assigned to officer: officer@vattax.gov.bd',
-        'step': 4,
-      },
-      {
-        'title': 'UNDER_REVIEW → APPROVED',
-        'user': 'Tax Officer',
-        'time': '15 Jun 2026, 03:25',
-        'desc': 'Verified and approved',
-        'step': 5,
-      },
-      {
-        'title': 'APPROVED → CREDITED',
-        'user': 'Tax Officer',
-        'time': '15 Jun 2026, 03:26',
-        'desc': 'AIT credit posted to taxpayer ledger',
-        'step': 6,
-      },
-    ];
-
-    // Filter events to only show what has occurred so far
-    final visibleEvents = auditEvents.where((e) => e['step'] <= activeStep).toList();
-
-    return _buildCard(
-      title: 'Audit Trail',
-      subtitle: '${visibleEvents.length} events',
-      icon: Icons.history_outlined,
-      iconColor: Colors.purple,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: visibleEvents.reversed.map((e) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Timeline node
-                Column(
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    Container(
-                      width: 1.5,
-                      height: 50,
-                      color: Colors.grey.shade200,
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 12),
-                // Event content
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        e['title'],
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primary),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${e['user']}  ·  ${e['time']}',
-                        style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        e['desc'],
-                        style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.grey.shade700),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
+  Widget _buildAuditTrailCard() => _buildCard(
+    title: 'Audit Trail', subtitle: 'Recorded status changes', icon: Icons.history, iconColor: Colors.purple,
+    child: Column(children: [
+      for (final event in (_detail?['statusHistory'] as List? ?? [])) ListTile(
+        title: Text(event['toStatus'] ?? '—'),
+        subtitle: Text([event['changedBy'], _formatDate(event['changedAt']), event['changeReason']].whereType<String>().join(' · ')),
       ),
-    );
-  }
+    ]),
+  );
 
   // Helper Card Builder
   Widget _buildCard({

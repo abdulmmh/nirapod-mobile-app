@@ -198,8 +198,8 @@ class BusinessDetailScreen extends StatelessWidget {
               theme: theme,
               rows: [
                 _buildDetailRow('Business Name', biz.name, isBoldValue: true),
-                _buildDetailRow('Owner Name', biz.ownerName ?? 'Tasrif Zaman'),
-                _buildDetailRow('TIN Number', biz.tinNumber ?? 'TIN-000000005', hasBadge: true, badgeColor: AppColors.primary.withOpacity(0.1), badgeTextColor: AppColors.primary),
+                _buildDetailRow('Owner Name', biz.ownerName ?? ''),
+                _buildDetailRow('TIN Number', biz.tinNumber ?? '', hasBadge: true, badgeColor: AppColors.primary.withOpacity(0.1), badgeTextColor: AppColors.primary),
                 _buildDetailRow('Business Type', biz.businessType ?? 'Textile Manufacturing'),
                 _buildDetailRow('Category', biz.businessCategory ?? 'Garments & Textile'),
               ],

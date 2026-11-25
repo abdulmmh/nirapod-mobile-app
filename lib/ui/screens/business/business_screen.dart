@@ -493,8 +493,8 @@ class _BusinessScreenState extends State<BusinessScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Column(
               children: [
-                _buildCardRow('OWNER', biz.ownerName ?? 'Tasrif Zaman'),
-                _buildCardRow('TIN', biz.tinNumber ?? 'TIN-000000005', isMonospace: true),
+                _buildCardRow('OWNER', biz.ownerName ?? ''),
+                _buildCardRow('TIN', biz.tinNumber ?? '', isMonospace: true),
                 _buildCardRow('TYPE', biz.businessType ?? 'Textile Manufacturing'),
                 _buildCardRow('CATEGORY', biz.businessCategory ?? 'Garments & Textile'),
                 _buildCardRow('DIVISION', biz.division ?? 'Dhaka'),

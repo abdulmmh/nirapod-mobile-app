@@ -1,16 +1,16 @@
-import 'dart:io' show Platform;
+import 'package:flutter/services.dart' show appFlavor;
 
 class ApiEndpoints {
-  // Configurable base URL
-  static String get baseUrl {
-    // Default emulator loopback for Android; localhost for iOS / Web
-    try {
-      if (Platform.isAndroid) {
-        return 'http://10.0.2.2:8080/api';
-      }
-    } catch (_) {}
-    return 'http://localhost:8080/api';
-  }
+  static const _localOrigin = String.fromEnvironment(
+    'LOCAL_API_ORIGIN',
+    defaultValue: 'http://10.0.2.2:8080',
+  );
+
+  static String get serverOrigin => appFlavor == 'local'
+      ? Uri.parse(_localOrigin).origin
+      : 'https://nirapod-api.onrender.com';
+
+  static String get baseUrl => '$serverOrigin/api';
 
   // Auth
   static const String login = '/auth/login';

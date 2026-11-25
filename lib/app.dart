@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../core/theme/app_theme.dart';
+import 'core/theme/app_theme.dart';
 import 'providers/auth_provider.dart';
+import 'providers/taxpayer_provider.dart';
+import 'providers/portal_provider.dart';
 import 'ui/screens/auth/login_screen.dart';
 import 'ui/screens/dashboard/dashboard_screen.dart';
 import 'ui/screens/profile/profile_screen.dart';
@@ -9,7 +11,6 @@ import 'ui/screens/profile/edit_profile_screen.dart';
 import 'ui/screens/business/business_screen.dart';
 import 'ui/screens/business/business_detail_screen.dart';
 import 'ui/screens/business/business_create_screen.dart';
-import 'ui/screens/tin/issue_tin_screen.dart';
 import 'ui/screens/tin/tin_details_screen.dart';
 import 'ui/screens/itr/itr_screen.dart';
 import 'ui/screens/ait/ait_screen.dart';
@@ -30,7 +31,14 @@ class NirapodApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    final session = context.select((AuthProvider auth) => auth.currentUser?.token);
+    return MultiProvider(
+      key: ValueKey(session),
+      providers: [
+        ChangeNotifierProvider(create: (_) => TaxpayerProvider()),
+        ChangeNotifierProvider(create: (_) => PortalProvider()),
+      ],
+      child: MaterialApp(
       title: 'Nirapod Taxpayer Portal',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
@@ -46,7 +54,6 @@ class NirapodApp extends StatelessWidget {
         '/businesses': (context) => const BusinessScreen(),
         '/business-details': (context) => const BusinessDetailScreen(),
         '/business-create': (context) => const BusinessCreateScreen(),
-        '/tin-create': (context) => const IssueTinScreen(),
         '/tin-details': (context) => const TinDetailsScreen(),
         '/itr': (context) => const ItrScreen(),
         '/ait': (context) => const AitScreen(),
@@ -62,6 +69,7 @@ class NirapodApp extends StatelessWidget {
         '/vat-registrations': (context) => const VatRegistrationsScreen(),
         '/vat-returns': (context) => const VatReturnsScreen(),
       },
+      ),
     );
   }
 }
@@ -74,13 +82,6 @@ class AppInitGate extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
     
-    // Allow minor delay for loading session from disk
-    if (auth.isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
     if (auth.isLoggedIn) {
       return const DashboardScreen();
     } else {

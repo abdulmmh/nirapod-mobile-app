@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'app.dart';
 import 'providers/auth_provider.dart';
-import 'providers/taxpayer_provider.dart';
-import 'providers/portal_provider.dart';
 import 'core/utils/storage_manager.dart';
 
 void main() async {
@@ -14,12 +12,8 @@ void main() async {
   await StorageManager.init();
 
   runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => TaxpayerProvider()),
-        ChangeNotifierProvider(create: (_) => PortalProvider()),
-      ],
+    ChangeNotifierProvider(
+      create: (_) => AuthProvider(),
       child: const NirapodApp(),
     ),
   );

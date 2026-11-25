@@ -1,17 +1,20 @@
-# nirapod_mobile_app
+# Nirapod Flutter
 
-A new Flutter project.
+Android taxpayer client for the Nirapod Spring Boot API.
 
-## Getting Started
+| Android flavor | Backend | Run |
+| --- | --- | --- |
+| `live` (default) | Render demo | `flutter run --flavor live` |
+| `local` | Spring Boot on the emulator host, port 8080 | `flutter run --flavor local` |
 
-This project is a starting point for a Flutter application.
+For a physical phone, start the backend on your PC, connect both devices to the same LAN and use the PC's address. Replace the example address in the following command.
 
-A few resources to get you started if this is your first Flutter project:
+```sh
+flutter run --flavor local --dart-define=LOCAL_API_ORIGIN=http://192.168.1.20:8080
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+The two variants have separate application IDs and session storage. Sign in with a taxpayer account from the selected backend. The demo buttons fill the email field. Enter the password configured for that backend.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Run `flutter test` for the app and API regression tests. Build an installable preview with `flutter build apk --debug --flavor live` or `flutter build apk --debug --flavor local`.
+
+For a signed release, configure `ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD` in your build environment and run `flutter build appbundle --release --flavor live`.

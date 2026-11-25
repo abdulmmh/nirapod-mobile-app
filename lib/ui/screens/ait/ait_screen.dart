@@ -190,8 +190,8 @@ class _AitScreenState extends State<AitScreen> {
         icon: Icons.hourglass_empty_rounded,
         iconColor: AppColors.warning,
         subtext: 'Awaiting officer',
-        onTap: () => setState(() => _selectedStatusFilter = 'Pending'),
-        isSelected: _selectedStatusFilter == 'Pending',
+        onTap: () => setState(() => _selectedStatusFilter = 'Pending Review'),
+        isSelected: _selectedStatusFilter == 'Pending Review',
       ),
       StatCard(
         title: 'Credited to ITR',
@@ -212,52 +212,32 @@ class _AitScreenState extends State<AitScreen> {
       ),
     ];
 
-    final isMobile = MediaQuery.of(context).size.width < 900;
+    final isDesktop = MediaQuery.of(context).size.width >= 900;
 
-    if (isMobile) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(child: widgets[0]),
-              const SizedBox(width: 8),
-              Expanded(child: widgets[1]),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(child: widgets[2]),
-              const SizedBox(width: 8),
-              Expanded(child: widgets[3]),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(child: widgets[4]),
-            ],
-          ),
-        ],
+    if (isDesktop) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: widgets.map((w) => Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(right: w == widgets.last ? 0 : 12.0),
+              child: w,
+            ),
+          )).toList(),
+        ),
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Expanded(child: widgets[0]),
-          const SizedBox(width: 12),
-          Expanded(child: widgets[1]),
-          const SizedBox(width: 12),
-          Expanded(child: widgets[2]),
-          const SizedBox(width: 12),
-          Expanded(child: widgets[3]),
-          const SizedBox(width: 12),
-          Expanded(child: widgets[4]),
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossAxisCount = constraints.maxWidth >= 600 ? 3 : 2;
+        final double itemWidth = (constraints.maxWidth - ((crossAxisCount - 1) * 12)) / crossAxisCount;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: widgets.map((w) => SizedBox(width: itemWidth, child: w)).toList(),
+        );
+      },
     );
   }
 
@@ -273,7 +253,8 @@ class _AitScreenState extends State<AitScreen> {
         border: Border.all(color: isDark ? AppColors.borderDark : AppColors.border),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
             onChanged: (val) => setState(() => _searchQuery = val),
@@ -285,51 +266,52 @@ class _AitScreenState extends State<AitScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth > 500) {
-                return Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedStatusFilter,
-                        decoration: const InputDecoration(labelText: 'Status', contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
-                        items: statusOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-                        onChanged: (val) => setState(() => _selectedStatusFilter = val ?? 'All'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedSourceFilter,
-                        decoration: const InputDecoration(labelText: 'Source Type', contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
-                        items: sourceOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-                        onChanged: (val) => setState(() => _selectedSourceFilter = val ?? 'All'),
-                      ),
-                    ),
-                  ],
-                );
-              } else {
-                return Column(
-                  children: [
-                    DropdownButtonFormField<String>(
-                      value: _selectedStatusFilter,
-                      decoration: const InputDecoration(labelText: 'Status', contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
-                      items: statusOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-                      onChanged: (val) => setState(() => _selectedStatusFilter = val ?? 'All'),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: _selectedSourceFilter,
-                      decoration: const InputDecoration(labelText: 'Source Type', contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
-                      items: sourceOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-                      onChanged: (val) => setState(() => _selectedSourceFilter = val ?? 'All'),
-                    ),
-                  ],
-                );
-              }
-            },
-          ),
+          if (MediaQuery.of(context).size.width >= 600)
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    value: _selectedStatusFilter,
+                    decoration: const InputDecoration(labelText: 'Status', contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+                    items: statusOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                    onChanged: (val) => setState(() => _selectedStatusFilter = val ?? 'All'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    value: _selectedSourceFilter,
+                    decoration: const InputDecoration(labelText: 'Source Type', contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+                    items: sourceOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                    onChanged: (val) => setState(() => _selectedSourceFilter = val ?? 'All'),
+                  ),
+                ),
+              ],
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  value: _selectedStatusFilter,
+                  decoration: const InputDecoration(labelText: 'Status', contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+                  items: statusOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                  onChanged: (val) => setState(() => _selectedStatusFilter = val ?? 'All'),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  value: _selectedSourceFilter,
+                  decoration: const InputDecoration(labelText: 'Source Type', contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+                  items: sourceOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                  onChanged: (val) => setState(() => _selectedSourceFilter = val ?? 'All'),
+                ),
+              ],
+            ),
         ],
       ),
     );
@@ -340,6 +322,7 @@ class _AitScreenState extends State<AitScreen> {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 60),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.receipt_long_outlined, size: 80, color: Colors.grey),
             const SizedBox(height: 16),
@@ -417,8 +400,8 @@ class _AitScreenState extends State<AitScreen> {
                 MaterialPageRoute(
                   builder: (_) => AitWizardScreen(
                     taxpayerId: taxpayerId,
-                    taxpayerName: auth.currentUser?.fullName ?? 'Tasrif Zaman',
-                    tinNumber: auth.currentUser?.tinNumber ?? 'TIN-000000005',
+                    taxpayerName: auth.currentUser?.fullName ?? '',
+                    tinNumber: auth.currentUser?.tinNumber ?? '',
                   ),
                 ),
               ),
@@ -429,6 +412,7 @@ class _AitScreenState extends State<AitScreen> {
           : null,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Page Header
           Row(
@@ -437,6 +421,7 @@ class _AitScreenState extends State<AitScreen> {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       'Advance Income Tax (AIT)',
@@ -468,8 +453,8 @@ class _AitScreenState extends State<AitScreen> {
                     MaterialPageRoute(
                       builder: (_) => AitWizardScreen(
                         taxpayerId: taxpayerId,
-                        taxpayerName: auth.currentUser?.fullName ?? 'Tasrif Zaman',
-                        tinNumber: auth.currentUser?.tinNumber ?? 'TIN-000000005',
+                        taxpayerName: auth.currentUser?.fullName ?? '',
+                        tinNumber: auth.currentUser?.tinNumber ?? '',
                       ),
                     ),
                   ),
@@ -669,6 +654,7 @@ class _AitScreenState extends State<AitScreen> {
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -622,48 +622,47 @@ class _AppealsScreenState extends State<AppealsScreen> {
           ),
           const SizedBox(height: 20),
 
-          // ── KPI CARDS ROW (Responsive Layout) ────────────────────────────────
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final bool isWide = constraints.maxWidth > 600;
-              final cards = [
-                _buildKPICard(
-                  title: 'Total Appeals',
-                  value: '$totalAppeals',
-                  icon: Icons.gavel_outlined,
-                  color: Colors.teal,
-                  isDark: isDark,
-                  width: isWide ? null : 150,
-                ),
-                _buildKPICard(
-                  title: 'Active Appeals',
-                  value: '$activeAppeals',
-                  icon: Icons.hourglass_empty,
-                  color: Colors.amber.shade800,
-                  isDark: isDark,
-                  width: isWide ? null : 150,
-                ),
-                _buildKPICard(
-                  title: 'Disputed Amount',
-                  value: _formatAmt(totalDisputed),
-                  icon: Icons.account_balance_wallet_outlined,
-                  color: Colors.blue,
-                  isDark: isDark,
-                  width: isWide ? null : 150,
-                ),
-              ];
+          // ── KPI CARDS GRID (Responsive Layout) ───────────────────────────────
+          Builder(
+            builder: (context) {
+              final screenWidth = MediaQuery.of(context).size.width;
+              final gridWidth = screenWidth.clamp(0.0, 1100.0);
+              final int crossAxisCount = screenWidth < 600 ? 2 : 3;
+              final double cardWidth = (gridWidth - 32 - (crossAxisCount - 1) * 12) / crossAxisCount;
+              final double cardHeight = screenWidth < 600 ? 85 : 75;
+              final double aspectRatio = cardWidth / cardHeight;
 
-              if (isWide) {
-                return Row(
-                  children: cards.map((card) => Expanded(child: card)).toList(),
-                );
-              } else {
-                return SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  child: Row(children: cards),
-                );
-              }
+              return GridView.count(
+                crossAxisCount: crossAxisCount,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: aspectRatio,
+                children: [
+                  _buildKPICard(
+                    title: 'Total Appeals',
+                    value: '$totalAppeals',
+                    icon: Icons.gavel_outlined,
+                    color: Colors.teal,
+                    isDark: isDark,
+                  ),
+                  _buildKPICard(
+                    title: 'Active Appeals',
+                    value: '$activeAppeals',
+                    icon: Icons.hourglass_empty,
+                    color: Colors.amber.shade800,
+                    isDark: isDark,
+                  ),
+                  _buildKPICard(
+                    title: 'Disputed Amount',
+                    value: _formatAmt(totalDisputed),
+                    icon: Icons.account_balance_wallet_outlined,
+                    color: Colors.blue,
+                    isDark: isDark,
+                  ),
+                ],
+              );
             },
           ),
           const SizedBox(height: 24),
@@ -699,15 +698,14 @@ class _AppealsScreenState extends State<AppealsScreen> {
           const SizedBox(height: 16),
 
           // ── FILTER CHIPS ──────────────────────────────────────────────────
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildFilterChip('ALL', 'All Appeals'),
-                _buildFilterChip('ACTIVE', 'Active / In Progress'),
-                _buildFilterChip('CLOSED', 'Resolved / Closed'),
-              ],
-            ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildFilterChip('ALL', 'All Appeals'),
+              _buildFilterChip('ACTIVE', 'Active / In Progress'),
+              _buildFilterChip('CLOSED', 'Resolved / Closed'),
+            ],
           ),
           const SizedBox(height: 16),
 
@@ -922,11 +920,10 @@ class _AppealsScreenState extends State<AppealsScreen> {
     required IconData icon,
     required Color color,
     required bool isDark,
-    double? width = 150,
+    double? width,
   }) {
     return Container(
       width: width,
-      margin: const EdgeInsets.only(right: 14),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: isDark ? AppColors.surfaceDark : Colors.white,

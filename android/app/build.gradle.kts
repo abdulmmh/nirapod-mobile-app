@@ -4,7 +4,19 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val releaseStore = providers.environmentVariable("ANDROID_KEYSTORE_PATH").orNull
+
 android {
+    signingConfigs {
+        if (releaseStore != null) {
+            create("upload") {
+                storeFile = file(releaseStore)
+                storePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").get()
+                keyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").get()
+                keyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").get()
+            }
+        }
+    }
     namespace = "com.vtms.nirapod.nirapod_mobile_app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
@@ -25,11 +37,24 @@ android {
         versionName = flutter.versionName
     }
 
+    flavorDimensions += "environment"
+    productFlavors {
+        create("live") {
+            manifestPlaceholders["appLabel"] = "Nirapod Flutter"
+            dimension = "environment"
+            manifestPlaceholders["allowHttp"] = "false"
+        }
+        create("local") {
+            manifestPlaceholders["appLabel"] = "Nirapod Flutter (Local)"
+            dimension = "environment"
+            applicationIdSuffix = ".local"
+            manifestPlaceholders["allowHttp"] = "true"
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("upload")
         }
     }
 }

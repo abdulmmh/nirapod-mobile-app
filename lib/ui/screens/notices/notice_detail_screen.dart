@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../providers/portal_provider.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../data/models/portal_records.dart';
 import '../../widgets/portal_shell.dart';
 
@@ -227,7 +228,7 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
                             children: [
                               _buildMetaPill(Icons.person_outline, 'System', isDark),
                               _buildMetaPill(Icons.calendar_today_outlined, notice.date ?? '—', isDark),
-                              _buildMetaPill(Icons.badge_outlined, 'Tasrif Zaman (TIN-000000005)', isDark),
+                              _buildMetaPill(Icons.badge_outlined, context.watch<AuthProvider>().currentUser?.fullName ?? 'Taxpayer', isDark),
                               _buildMetaPill(Icons.people_outline, 'Specific Taxpayer', isDark),
                             ],
                           ),
@@ -418,6 +419,8 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
                                 setState(() {
                                   _showReplyEditor = false;
                                 });
+                              } else if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reply not confirmed. Refresh the notice before retrying.')));
                               }
                             },
                             icon: const Icon(Icons.send, size: 14),

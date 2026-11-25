@@ -264,15 +264,16 @@ class _It10bScreenState extends State<It10bScreen> {
                           const SizedBox(height: 16),
   
                           // Action Buttons Bar
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
+                          Wrap(
+                            alignment: WrapAlignment.end,
+                            spacing: 12,
+                            runSpacing: 12,
                             children: [
                               OutlinedButton.icon(
                                 onPressed: () => Navigator.pop(context),
                                 icon: const Icon(Icons.close),
                                 label: const Text('Cancel'),
                               ),
-                              const SizedBox(width: 12),
                               OutlinedButton.icon(
                                 onPressed: _resetForm,
                                 icon: const Icon(Icons.refresh),
@@ -282,7 +283,6 @@ class _It10bScreenState extends State<It10bScreen> {
                                   side: BorderSide(color: Colors.amber.shade700),
                                 ),
                               ),
-                              const SizedBox(width: 12),
                               ElevatedButton.icon(
                                 onPressed: _isSaving ? null : _submitForm,
                                 icon: _isSaving
@@ -329,8 +329,10 @@ class _It10bScreenState extends State<It10bScreen> {
                 const Text('Real-Time Net Wealth', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                 const Text('Total Assets - Liabilities', style: TextStyle(color: Colors.grey, fontSize: 11)),
                 const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  spacing: 12,
+                  runSpacing: 4,
                   children: [
                     Text('Assets: ${_formatAmount(_totalAssets)}', style: const TextStyle(color: AppColors.success, fontSize: 12, fontWeight: FontWeight.w600)),
                     Text('Liabilities: ${_formatAmount(double.tryParse(_liabilitiesController.text) ?? 0.0)}', style: const TextStyle(color: AppColors.error, fontSize: 12, fontWeight: FontWeight.w600)),
@@ -369,7 +371,8 @@ class _It10bScreenState extends State<It10bScreen> {
                       children: [
                         const Text('Real-Time Net Wealth Computation', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                         const SizedBox(height: 4),
-                        Row(
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             Text('Assets: ${_formatAmount(_totalAssets)}', style: const TextStyle(color: AppColors.success, fontSize: 12, fontWeight: FontWeight.w600)),
                             const SizedBox(width: 8),

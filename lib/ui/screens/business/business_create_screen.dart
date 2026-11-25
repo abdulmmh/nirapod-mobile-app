@@ -52,8 +52,8 @@ class _BusinessCreateScreenState extends State<BusinessCreateScreen> {
     // Auto populate logged in taxpayer details
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final taxpayer = Provider.of<TaxpayerProvider>(context, listen: false).taxpayer;
-      final name = taxpayer?.fullName ?? taxpayer?.companyName ?? 'Tasrif Zaman';
-      final tin = taxpayer?.tin ?? 'TIN-000000005';
+      final name = taxpayer?.fullName ?? taxpayer?.companyName ?? '';
+      final tin = taxpayer?.tin ?? '';
       _triggerAutoFill(name, tin);
     });
   }

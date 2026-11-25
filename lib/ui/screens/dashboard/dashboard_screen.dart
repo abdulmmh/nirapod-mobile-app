@@ -23,25 +23,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
   }
 
-  void _loadData() async {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    final user = auth.currentUser;
-    if (user != null) {
-      final taxpayerProv = Provider.of<TaxpayerProvider>(context, listen: false);
-      await taxpayerProv.fetchProfile(user.taxpayerId, user.taxpayerType ?? 'Individual');
-      
-      if (mounted && user.taxpayerId != null) {
-        final portalProv = Provider.of<PortalProvider>(context, listen: false);
-        final name = taxpayerProv.taxpayer?.fullName ?? taxpayerProv.taxpayer?.companyName;
-        final tin = taxpayerProv.taxpayer?.tin;
-        await portalProv.loadAllData(
-          user.taxpayerId!,
-          user.taxpayerType ?? 'Individual',
-          taxpayerName: name,
-          tinNumber: tin,
-        );
-      }
-    }
+  Future<void> _loadData() async {
+    if (!mounted) return;
+    final user = context.read<AuthProvider>().currentUser;
+    if (user == null) return;
+    await Future.wait([
+      context.read<TaxpayerProvider>().fetchProfile(user.taxpayerId, user.taxpayerType ?? 'Individual'),
+      if (user.taxpayerId != null) context.read<PortalProvider>().loadAllData(user.taxpayerId!),
+    ]);
   }
 
   String _formatCurrency(double amount) {
@@ -80,6 +69,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final String tinStr = taxpayer?.tin ?? user.tinNumber ?? 'N/A';
     final String approvalStatus = taxpayer?.approvalStatus ?? user.approvalStatus ?? 'Pending';
 
+    final dataPending = portalProv.isLoading || portalProv.errorMessage != null;
+
     // Calculation of dues from returns
     double outstandingDues = 0;
     for (var r in portalProv.itrs) {
@@ -98,9 +89,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       complianceScore = ((accepted / portalProv.itrs.length) * 100).round();
     }
 
-    if (taxpayerProv.isLoading || portalProv.isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
 
     return PortalShell(
       body: RefreshIndicator(
@@ -108,6 +96,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (taxpayerProv.isLoading || portalProv.isLoading) const LinearProgressIndicator(),
+            if (portalProv.errorMessage != null || taxpayerProv.errorMessage != null)
+              TextButton.icon(onPressed: _loadData, icon: const Icon(Icons.refresh),
+                label: const Text('Some data is unavailable. Tap to retry.')),
             // User Header Card
             _buildUserHeader(displayName, tinStr, category, approvalStatus, taxpayerProv.taxpayer?.photoPath, isDark, theme),
                         const SizedBox(height: 20),
@@ -127,14 +119,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           children: [
                             StatCard(
                               title: 'Returns Filed',
-                              value: '${portalProv.itrs.length}',
+                              value: dataPending ? '—' : '${portalProv.itrs.length}',
                               icon: Icons.assignment_outlined,
                               iconColor: AppColors.primary,
                               subtext: 'ITR history count',
                             ),
                             StatCard(
                               title: 'Outstanding Dues',
-                              value: _formatCurrency(outstandingDues),
+                              value: dataPending ? '—' : _formatCurrency(outstandingDues),
                               icon: Icons.account_balance_wallet_outlined,
                               iconColor: outstandingDues > 0 ? AppColors.error : AppColors.success,
                               subtext: 'Unpaid liabilities',
@@ -142,7 +134,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             StatCard(
                               title: 'Compliance Rate',
-                              value: '$complianceScore%',
+                              value: dataPending ? '—' : '$complianceScore%',
                               icon: Icons.verified_user_outlined,
                               iconColor: complianceScore >= 80 ? AppColors.success : AppColors.warning,
                               subtext: 'Accepted vs filed',
@@ -150,7 +142,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             StatCard(
                               title: 'Active Alerts',
-                              value: '${portalProv.notices.where((n) => n.status == 'Unread').length}',
+                              value: dataPending ? '—' : '${portalProv.notices.where((n) => n.status == 'Unread').length}',
                               icon: Icons.notifications_active_outlined,
                               iconColor: portalProv.notices.any((n) => n.status == 'Unread') ? AppColors.warning : Colors.grey,
                               subtext: 'Unread system notices',
@@ -227,7 +219,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             radius: 30,
             backgroundColor: Colors.white,
             backgroundImage: photoPath != null && photoPath.isNotEmpty
-                ? NetworkImage('${ApiEndpoints.baseUrl.replaceAll('/api', '')}$photoPath')
+                ? NetworkImage('${ApiEndpoints.serverOrigin}$photoPath')
                 : null,
             child: photoPath == null || photoPath.isEmpty
                 ? Text(

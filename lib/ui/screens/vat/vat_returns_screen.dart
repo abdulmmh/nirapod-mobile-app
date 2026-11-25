@@ -102,25 +102,29 @@ class _VatReturnsScreenState extends State<VatReturnsScreen> {
             const SizedBox(height: 16),
 
             // KPI Cards row
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final double cardWidth = isMobile ? constraints.maxWidth : (constraints.maxWidth - 32) / 3;
-                final list = [
-                  _buildKpiCard('Total Returns Filed', returns.length.toString(), Icons.history, Colors.blue, cardWidth),
-                  _buildKpiCard('Total VAT Paid', _formatCurrency(totalVatPaid), Icons.account_balance_wallet, AppColors.success, cardWidth),
-                  _buildKpiCard('Accepted Returns', returns.where((r) => r.status.toLowerCase() == 'accepted').length.toString(), Icons.check_circle_outline, Colors.teal, cardWidth),
-                ];
+            // KPI Cards Grid (Responsive Layout)
+            Builder(
+              builder: (context) {
+                final screenWidth = MediaQuery.of(context).size.width;
+                final gridWidth = screenWidth.clamp(0.0, 1100.0);
+                final int crossAxisCount = screenWidth < 600 ? 2 : 3;
+                final double cardWidth = (gridWidth - 32 - (crossAxisCount - 1) * 12) / crossAxisCount;
+                final double cardHeight = screenWidth < 600 ? 85 : 75;
+                final double aspectRatio = cardWidth / cardHeight;
 
-                if (isMobile) {
-                  return Column(
-                    children: list.map((c) => Padding(padding: const EdgeInsets.only(bottom: 12), child: c)).toList(),
-                  );
-                } else {
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: list,
-                  );
-                }
+                return GridView.count(
+                  crossAxisCount: crossAxisCount,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: aspectRatio,
+                  children: [
+                    _buildKpiCard('Total Returns Filed', returns.length.toString(), Icons.history, Colors.blue),
+                    _buildKpiCard('Total VAT Paid', _formatCurrency(totalVatPaid), Icons.account_balance_wallet, AppColors.success),
+                    _buildKpiCard('Accepted Returns', returns.where((r) => r.status.toLowerCase() == 'accepted').length.toString(), Icons.check_circle_outline, Colors.teal),
+                  ],
+                );
               },
             ),
             const SizedBox(height: 20),
@@ -333,9 +337,8 @@ class _VatReturnsScreenState extends State<VatReturnsScreen> {
     );
   }
 
-  Widget _buildKpiCard(String label, String value, IconData icon, Color color, double width) {
+  Widget _buildKpiCard(String label, String value, IconData icon, Color color) {
     return Container(
-      width: width,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,

@@ -17,7 +17,21 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoggedIn => _currentUser != null;
 
   AuthProvider() {
+    apiClient.onSessionExpired = _expireSession;
     _loadSession();
+  }
+
+  Future<void> _expireSession(String token) async {
+    if (_currentUser?.token != token) return;
+    _currentUser = null;
+    await StorageManager.clearAll();
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    if (apiClient.onSessionExpired == _expireSession) apiClient.onSessionExpired = null;
+    super.dispose();
   }
 
   // Load token & user session from local storage on app start
@@ -26,7 +40,12 @@ class AuthProvider extends ChangeNotifier {
     final jsonStr = StorageManager.getUserJson();
     if (jsonStr != null) {
       try {
-        _currentUser = AuthUser.fromJson(json.decode(jsonStr));
+        final saved = AuthUser.fromJson(json.decode(jsonStr));
+        if (saved.token.isEmpty || saved.token.startsWith('mock-token') || saved.token != StorageManager.getToken()) {
+          await StorageManager.clearAll();
+          return;
+        }
+        _currentUser = saved;
         notifyListeners();
       } catch (e) {
         print('Error loading user session: $e');
@@ -62,28 +81,17 @@ class AuthProvider extends ChangeNotifier {
           return false;
         }
 
+        if (user.token.trim().isEmpty) throw const FormatException('Missing session token');
         await _saveSession(user);
         _isLoading = false;
         notifyListeners();
         return true;
       }
     } on DioException catch (dioErr) {
-      // Offline fallback / Mock authentication to match Angular's login flow
-      if (dioErr.type == DioExceptionType.connectionTimeout ||
-          dioErr.type == DioExceptionType.connectionError ||
-          dioErr.response?.statusCode == 404 ||
-          dioErr.response?.statusCode == 500 ||
-          email == 'taxpayer@example.com') {
-        final mockUser = _getMockUser(email, password);
-        if (mockUser != null) {
-          await _saveSession(mockUser);
-          _isLoading = false;
-          notifyListeners();
-          return true;
-        }
-      }
-      
-      _errorMessage = dioErr.response?.data?['message'] ?? 'Login failed. Please check credentials.';
+      final body = dioErr.response?.data;
+      _errorMessage = body is Map && body['message'] is String
+          ? body['message'] as String
+          : 'Could not sign in. Check your connection and credentials.';
     } catch (e) {
       _errorMessage = 'An unexpected error occurred.';
     }
@@ -95,9 +103,9 @@ class AuthProvider extends ChangeNotifier {
 
   // Session saving helpers
   Future<void> _saveSession(AuthUser user) async {
-    _currentUser = user;
     await StorageManager.setToken(user.token);
     await StorageManager.setUserJson(json.encode(user.toJson()));
+    _currentUser = user;
   }
 
   // Logout
@@ -112,38 +120,6 @@ class AuthProvider extends ChangeNotifier {
     _errorMessage = null;
     await StorageManager.clearAll();
     notifyListeners();
-  }
-
-  // Mock Taxpayer accounts for immediate testability
-  AuthUser? _getMockUser(String email, String password) {
-    if (email == 'taxpayer@example.com' && password == 'demo1234') {
-      return AuthUser(
-        id: 6,
-        fullName: 'Abdul Karim',
-        email: 'taxpayer@example.com',
-        role: 'TAXPAYER',
-        token: 'mock-token-taxpayer',
-        taxpayerId: 1,
-        taxpayerType: 'Individual',
-        tinNumber: '102345678912',
-        approvalStatus: 'Approved',
-      );
-    }
-    // Additional business demo account if they input it
-    if (email == 'business@example.com' && password == 'demo1234') {
-      return AuthUser(
-        id: 12,
-        fullName: 'A.K. Traders Ltd.',
-        email: 'business@example.com',
-        role: 'TAXPAYER',
-        token: 'mock-token-business',
-        taxpayerId: 2,
-        taxpayerType: 'Business',
-        tinNumber: '302485967154',
-        approvalStatus: 'Approved',
-      );
-    }
-    return null;
   }
 
   void clearError() {

@@ -400,7 +400,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           radius: 36,
                           backgroundColor: Colors.teal.shade50,
                           backgroundImage: _photoPath != null
-                              ? NetworkImage('${ApiEndpoints.baseUrl.replaceAll('/api', '')}$_photoPath')
+                              ? NetworkImage('${ApiEndpoints.serverOrigin}$_photoPath')
                               : null,
                           child: _photoPath == null
                               ? const Icon(Icons.person, size: 36, color: AppColors.primary)

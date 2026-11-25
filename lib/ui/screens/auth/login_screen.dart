@@ -27,7 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void _fillDemoAccount(String email) {
     setState(() {
       _emailController.text = email;
-      _passwordController.text = 'demo1234';
+      _passwordController.clear();
     });
   }
 
@@ -37,14 +37,11 @@ class _LoginScreenState extends State<LoginScreen> {
     FocusScope.of(context).unfocus();
     final auth = Provider.of<AuthProvider>(context, listen: false);
     
-    final success = await auth.login(
+    await auth.login(
       _emailController.text.trim(),
       _passwordController.text,
     );
 
-    if (success && mounted) {
-      Navigator.pushReplacementNamed(context, '/dashboard');
-    }
   }
 
   @override
@@ -248,15 +245,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: () => _fillDemoAccount('taxpayer@example.com'),
+                            onPressed: () => _fillDemoAccount('taxpayer@nirapod.example'),
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
                             child: const Column(
                               children: [
-                                Text('👤 Individual', style: TextStyle(fontWeight: FontWeight.bold)),
-                                Text('Abdul Karim', style: TextStyle(fontSize: 10)),
+                                Text('Taxpayer 1', style: TextStyle(fontWeight: FontWeight.bold)),
+                                Text('Demo account', style: TextStyle(fontSize: 10)),
                               ],
                             ),
                           ),
@@ -264,15 +261,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: () => _fillDemoAccount('business@example.com'),
+                            onPressed: () => _fillDemoAccount('taxpayer2@nirapod.example'),
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
                             child: const Column(
                               children: [
-                                Text('🏪 Business', style: TextStyle(fontWeight: FontWeight.bold)),
-                                Text('A.K. Traders', style: TextStyle(fontSize: 10)),
+                                Text('Taxpayer 2', style: TextStyle(fontWeight: FontWeight.bold)),
+                                Text('Demo account', style: TextStyle(fontSize: 10)),
                               ],
                             ),
                           ),

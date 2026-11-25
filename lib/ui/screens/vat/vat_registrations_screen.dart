@@ -105,25 +105,29 @@ class _VatRegistrationsScreenState extends State<VatRegistrationsScreen> {
             const SizedBox(height: 16),
 
             // KPI Cards row
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final double cardWidth = isMobile ? constraints.maxWidth : (constraints.maxWidth - 32) / 3;
-                final list = [
-                  _buildKpiCard('Total Registrations', registrations.length.toString(), Icons.storefront, Colors.blue, cardWidth),
-                  _buildKpiCard('Active BINs', activeCount.toString(), Icons.check_circle, AppColors.success, cardWidth),
-                  _buildKpiCard('Pending Applications', pendingCount.toString(), Icons.hourglass_empty, AppColors.warning, cardWidth),
-                ];
+            // KPI Cards Grid (Responsive Layout)
+            Builder(
+              builder: (context) {
+                final screenWidth = MediaQuery.of(context).size.width;
+                final gridWidth = screenWidth.clamp(0.0, 1100.0);
+                final int crossAxisCount = screenWidth < 600 ? 2 : 3;
+                final double cardWidth = (gridWidth - 32 - (crossAxisCount - 1) * 12) / crossAxisCount;
+                final double cardHeight = screenWidth < 600 ? 85 : 75;
+                final double aspectRatio = cardWidth / cardHeight;
 
-                if (isMobile) {
-                  return Column(
-                    children: list.map((c) => Padding(padding: const EdgeInsets.only(bottom: 12), child: c)).toList(),
-                  );
-                } else {
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: list,
-                  );
-                }
+                return GridView.count(
+                  crossAxisCount: crossAxisCount,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: aspectRatio,
+                  children: [
+                    _buildKpiCard('Total Registrations', registrations.length.toString(), Icons.storefront, Colors.blue),
+                    _buildKpiCard('Active BINs', activeCount.toString(), Icons.check_circle, AppColors.success),
+                    _buildKpiCard('Pending Applications', pendingCount.toString(), Icons.hourglass_empty, AppColors.warning),
+                  ],
+                );
               },
             ),
             const SizedBox(height: 20),
@@ -331,9 +335,8 @@ class _VatRegistrationsScreenState extends State<VatRegistrationsScreen> {
     );
   }
 
-  Widget _buildKpiCard(String label, String value, IconData icon, Color color, double width) {
+  Widget _buildKpiCard(String label, String value, IconData icon, Color color) {
     return Container(
-      width: width,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,

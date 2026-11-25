@@ -24,6 +24,7 @@ class _PaymentCreateScreenState extends State<PaymentCreateScreen> {
   int? _taxpayerId;
 
   OutstandingItem? _selectedOutstandingItem;
+  bool _hasAttemptedAutoSelect = false;
 
   // Controllers
   final TextEditingController _tinController = TextEditingController();
@@ -181,7 +182,7 @@ class _PaymentCreateScreenState extends State<PaymentCreateScreen> {
       id: 0,
       challanNo: txnId,
       amount: double.tryParse(_amountController.text) ?? 0.0,
-      status: 'Success',
+      status: 'Pending',
       date: _paymentDate,
       paymentType: _paymentType,
       tinNumber: _tinController.text.trim(),
@@ -206,6 +207,8 @@ class _PaymentCreateScreenState extends State<PaymentCreateScreen> {
         const SnackBar(content: Text('Payment recorded successfully!'), backgroundColor: AppColors.success),
       );
       Navigator.pop(context);
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment not confirmed. Check payment history before retrying.')));
     }
   }
 
@@ -243,6 +246,47 @@ class _PaymentCreateScreenState extends State<PaymentCreateScreen> {
     final isDark = theme.brightness == Brightness.dark;
     final portalProv = Provider.of<PortalProvider>(context);
 
+    // Auto-select logic
+    if (!_hasAttemptedAutoSelect) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Map<String, dynamic> && args.containsKey('returnNo')) {
+        final targetReturnNo = args['returnNo'];
+        try {
+          // Try to find it in outstanding items
+          if (portalProv.outstandingItems.isNotEmpty) {
+            final matchedItem = portalProv.outstandingItems.firstWhere((item) => item.returnNo == targetReturnNo);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && _selectedOutstandingItem == null) {
+                _selectOutstandingItem(matchedItem);
+              }
+            });
+          } else {
+            throw Exception('Not loaded yet');
+          }
+        } catch (e) {
+          // If not found (e.g. ad-hoc demand notice payment), create a synthetic item to lock the UI
+          final outstandingAmt = (args['amount'] as num?)?.toDouble() ?? 0.0;
+          final syntheticItem = OutstandingItem(
+            type: args['paymentType'] ?? 'Demand Notice',
+            label: 'Ad-hoc Payment / Demand',
+            outstanding: outstandingAmt,
+            totalDue: outstandingAmt,
+            alreadyPaid: 0.0,
+            status: 'Pending',
+            overdue: false,
+            returnNo: targetReturnNo,
+            dueDate: DateTime.now().toIso8601String(),
+          );
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _selectedOutstandingItem == null) {
+              _selectOutstandingItem(syntheticItem);
+            }
+          });
+        }
+      }
+      _hasAttemptedAutoSelect = true;
+    }
+
     final showChequeField = _paymentMethod == 'Cheque';
     final isObligationLocked = _selectedOutstandingItem != null;
 
@@ -258,25 +302,28 @@ class _PaymentCreateScreenState extends State<PaymentCreateScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Record Payment',
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.teal.shade900,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Record Payment',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.teal.shade900,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Record a new tax payment transaction.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.grey.shade600,
+                      const SizedBox(height: 4),
+                      Text(
+                        'Record a new tax payment transaction.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey.shade600,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 OutlinedButton.icon(
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.arrow_back),
@@ -466,27 +513,26 @@ class _PaymentCreateScreenState extends State<PaymentCreateScreen> {
                                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black87),
                                         ),
                                         const SizedBox(height: 2),
-                                        Row(
+                                        Wrap(
+                                          crossAxisAlignment: WrapCrossAlignment.center,
+                                          spacing: 6,
+                                          runSpacing: 4,
                                           children: [
                                             Text(
                                               item.returnNo,
                                               style: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontFamily: 'monospace'),
                                             ),
-                                            if (item.dueDate != null) ...[
-                                              const SizedBox(width: 6),
+                                            if (item.dueDate != null)
                                               Text(
                                                 '• Due: ${item.dueDate}',
                                                 style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
                                               ),
-                                            ],
-                                            if (item.overdue) ...[
-                                              const SizedBox(width: 6),
+                                            if (item.overdue)
                                               Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                                                 decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(4)),
                                                 child: const Text('Overdue', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
                                               ),
-                                            ],
                                           ],
                                         ),
                                       ],

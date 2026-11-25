@@ -48,7 +48,7 @@ class _IssueTinScreenState extends State<IssueTinScreen> {
       if (taxpayer != null) {
         if (taxpayer.nid != null) {
           _searchController.text = taxpayer.nid!;
-          _triggerAutoFill(taxpayer.fullName ?? taxpayer.companyName ?? 'Tasrif Zaman', taxpayer.nid!);
+          _triggerAutoFill(taxpayer.fullName ?? taxpayer.companyName ?? '', taxpayer.nid!);
         } else {
           _searchController.text = taxpayer.fullName ?? '';
         }
@@ -61,9 +61,10 @@ class _IssueTinScreenState extends State<IssueTinScreen> {
       _isAutoFilled = true;
       _autoFilledName = name;
       _autoFilledNid = nid;
-      _emailController.text = 'tasrif@gmail.com';
-      _phoneController.text = '01987262436';
-      _addressController.text = 'Flat 4B, House 12, Road 5, Dhanmondi, Dhaka';
+      final profile = context.read<TaxpayerProvider>().taxpayer;
+      _emailController.text = profile?.email ?? '';
+      _phoneController.text = profile?.phone ?? '';
+      _addressController.text = profile?.presentAddress?.details ?? '';
     });
   }
 
@@ -73,10 +74,11 @@ class _IssueTinScreenState extends State<IssueTinScreen> {
 
     final taxpayerProv = Provider.of<TaxpayerProvider>(context, listen: false);
     final tp = taxpayerProv.taxpayer;
-    if (tp != null && (query == tp.nid || query.toLowerCase() == (tp.fullName ?? '').toLowerCase())) {
-      _triggerAutoFill(tp.fullName ?? tp.companyName ?? 'Tasrif Zaman', tp.nid!);
+    if (tp != null && tp.nid != null && (query == tp.nid || query.toLowerCase() == (tp.fullName ?? '').toLowerCase())) {
+      _triggerAutoFill(tp.fullName ?? tp.companyName ?? '', tp.nid!);
     } else {
-      _triggerAutoFill('Tasrif Zaman', '1234567890');
+      setState(() => _isAutoFilled = false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No matching taxpayer profile.')));
     }
   }
 
@@ -103,12 +105,14 @@ class _IssueTinScreenState extends State<IssueTinScreen> {
       return;
     }
 
+    final profile = context.read<TaxpayerProvider>().taxpayer;
+    if (profile == null) return;
     final reqData = {
-      'taxpayerId': Provider.of<TaxpayerProvider>(context, listen: false).taxpayer?.id ?? 1,
+      'taxpayerId': profile.id,
       'tinCategory': _selectedCategory ?? 'Individual',
       'nid': _autoFilledNid,
-      'dateOfBirth': '2000-06-22',
-      'gender': 'Male',
+      'dateOfBirth': profile.dateOfBirth,
+      'gender': profile.gender,
       'email': _emailController.text.trim(),
       'phone': _phoneController.text.trim(),
       'address': _addressController.text.trim(),

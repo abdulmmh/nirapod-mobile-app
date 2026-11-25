@@ -95,8 +95,8 @@ class _ItrScreenState extends State<ItrScreen> {
     final isMobile = MediaQuery.of(context).size.width < 900;
     
     final taxpayerId = auth.currentUser?.taxpayerId ?? 0;
-    final taxpayerName = auth.currentUser?.fullName ?? 'Tasrif Zaman';
-    final tinNumber = auth.currentUser?.tinNumber ?? 'TIN-000000005';
+    final taxpayerName = auth.currentUser?.fullName ?? '—';
+    final tinNumber = auth.currentUser?.tinNumber ?? '';
 
     // Calculate ITR stats
     final totalFiled = portalProv.itrs.length;
@@ -136,12 +136,7 @@ class _ItrScreenState extends State<ItrScreen> {
         body: portalProv.isLoading
             ? const Center(child: CircularProgressIndicator())
             : RefreshIndicator(
-                onRefresh: () => portalProv.loadAllData(
-                  taxpayerId,
-                  auth.currentUser?.taxpayerType ?? 'Individual',
-                  taxpayerName: taxpayerName,
-                  tinNumber: tinNumber,
-                ),
+                onRefresh: () => portalProv.loadAllData(taxpayerId),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -501,7 +496,7 @@ class _ItrScreenState extends State<ItrScreen> {
                           
                           // Taxpayer name
                           Text(
-                            r.taxpayerName ?? 'Tasrif Zaman',
+                            r.taxpayerName ?? '—',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(

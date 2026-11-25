@@ -1,3 +1,7 @@
+import 'dart:typed_data';
+import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
+import '../../../core/utils/api_client.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -33,26 +37,18 @@ class _TinDetailsScreenState extends State<TinDetailsScreen> {
     }
   }
 
-  void _triggerCertificateDownload(String tinNum, String name) {
+  Future<void> _downloadCertificate(int id, String number) async {
     setState(() => _isDownloading = true);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Downloading TIN Certificate for $name ($tinNum)...'),
-        backgroundColor: AppColors.success,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
-        setState(() => _isDownloading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Certificate downloaded successfully!'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-      }
-    });
+    try {
+      final pdf = await apiClient.dio.get<List<int>>('/tins/$id/certificate',
+          options: Options(responseType: ResponseType.bytes));
+      if (!mounted) return;
+      await FilePicker.saveFile(fileName: 'TIN-$number.pdf', bytes: Uint8List.fromList(pdf.data!));
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not save the certificate.')));
+    } finally {
+      if (mounted) setState(() => _isDownloading = false);
+    }
   }
 
   @override
@@ -118,12 +114,12 @@ class _TinDetailsScreenState extends State<TinDetailsScreen> {
       );
     }
 
-    final String displayName = record.taxpayerName ?? taxpayer?.companyName ?? taxpayer?.fullName ?? 'Tasrif Zaman';
+    final String displayName = record.taxpayerName ?? taxpayer?.companyName ?? taxpayer?.fullName ?? '';
     final String tinNum = record.tinNumber;
     final String category = record.tinCategory ?? taxpayer?.taxpayerType?.category ?? 'Individual';
     final String status = record.status ?? 'Active';
-    final String zone = record.taxZone ?? 'Dhaka Tax Zone';
-    final String circle = record.taxCircle ?? 'Dhaka Circle-1';
+    final String zone = record.taxZone ?? '—';
+    final String circle = record.taxCircle ?? '—';
 
     return PortalShell(
       breadcrumbs: const ['My Portal', 'TIN Details'],
@@ -162,7 +158,7 @@ class _TinDetailsScreenState extends State<TinDetailsScreen> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
-                          onPressed: _isDownloading ? null : () => _triggerCertificateDownload(tinNum, displayName),
+                          onPressed: _isDownloading ? null : () => _downloadCertificate(record.id, tinNum),
                           icon: _isDownloading
                               ? const SizedBox(
                                   width: 14,
@@ -228,7 +224,7 @@ class _TinDetailsScreenState extends State<TinDetailsScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         ),
-                        onPressed: _isDownloading ? null : () => _triggerCertificateDownload(tinNum, displayName),
+                        onPressed: _isDownloading ? null : () => _downloadCertificate(record.id, tinNum),
                         icon: _isDownloading
                             ? const SizedBox(
                                 width: 14,
